@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
@@ -152,6 +152,31 @@ export async function createResponseRecord(invitationId: number, answer: unknown
     throw new Error("La réponse vient d'être insérée mais reste introuvable — incohérence de base.");
   }
   return created;
+}
+
+/**
+ * Supprime les invitations dont la date de validité est passée.
+ *
+ * Les réponses associées partent avec, par la clé étrangère ON DELETE CASCADE
+ * posée en migration 0003 — sans elle, cette suppression laisserait des
+ * réponses orphelines contenant des données personnelles.
+ */
+export async function deleteExpiredInvitations(now = new Date()): Promise<number> {
+  const db = await requireDb();
+  const [header] = await db.delete(invitations).where(lt(invitations.expiresAt, now));
+  return header.affectedRows ?? 0;
+}
+
+/**
+ * Purge les compteurs de rate limiting au-delà de la plus large fenêtre
+ * observée (24 h). Ce sont des hachages d'IP : les garder plus longtemps
+ * n'apporte rien et allonge inutilement la durée de conservation.
+ */
+export async function deleteOldRateLimits(now = new Date()): Promise<number> {
+  const db = await requireDb();
+  const cutoff = new Date(now.getTime() - DAY_MS);
+  const [header] = await db.delete(rateLimits).where(lt(rateLimits.timestamp, cutoff));
+  return header.affectedRows ?? 0;
 }
 
 export async function getInvitationStats() {

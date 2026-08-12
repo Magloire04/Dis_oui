@@ -1,25 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { THEMES } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import type { ThemeId } from "@shared/invitationConfig";
-import { 
-  Heart, 
-  Sparkles, 
-  ArrowRight, 
-  ShieldCheck, 
-  Clock, 
-  Smartphone, 
-  Mail, 
-  HelpCircle, 
-  CheckCircle2, 
-  Share2, 
-  Calendar,
-  Gift,
-  Smile
-} from "lucide-react";
+import { Heart, Sparkles, ArrowRight, ShieldCheck, HelpCircle } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -77,18 +62,30 @@ export default function Home() {
             </div>
           </div>
           
+          {/* Chiffres réels, issus de la base. Les valeurs affichées ici
+              étaient inventées : « 2 600+ » en repli d'un compteur serveur qui
+              en annonçait 1 428, un taux de 92 % et un poids de page jamais
+              mesurés. */}
           <div className="pt-8 grid grid-cols-3 gap-6 border-t border-stone-200/60 text-center lg:text-left">
             <div>
-              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">{stats?.totalCreated?.toLocaleString() || "2,600+"}</p>
+              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">
+                {stats ? stats.totalCreated.toLocaleString("fr-FR") : "—"}
+              </p>
               <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Invitations créées</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">92%</p>
-              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Taux de « Oui »</p>
+              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">
+                {stats && stats.totalCreated > 0
+                  ? `${Math.round((stats.totalResponses / stats.totalCreated) * 100)} %`
+                  : "—"}
+              </p>
+              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Taux de réponse</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">&lt; 150Ko</p>
-              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Poids ultra-léger</p>
+              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">
+                {Object.keys(THEMES).length}
+              </p>
+              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Thèmes animés</p>
             </div>
           </div>
         </div>
@@ -274,9 +271,16 @@ export default function Home() {
             © 2026 Dis oui. Conçu avec amour et élégance. Tous droits réservés. Respect strict du RGPD.
           </p>
           <div className="flex items-center gap-6 text-xs">
-            <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
-            <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+            <button
+              onClick={() => setLocation("/mentions-legales")}
+              className="hover:text-white transition-colors">
+              Mentions légales
+            </button>
+            <button
+              onClick={() => setLocation("/confidentialite")}
+              className="hover:text-white transition-colors">
+              Confidentialité
+            </button>
           </div>
         </div>
       </footer>

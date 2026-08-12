@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { startPurgeSchedule } from "../purge";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -57,6 +58,10 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  // Purge RGPD des invitations expirées : la durée de vie annoncée à la
+  // création doit être tenue sans intervention manuelle.
+  startPurgeSchedule();
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

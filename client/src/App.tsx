@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import Editor from "./pages/Editor";
 import RecipientFunnel from "./pages/RecipientFunnel";
 import TrackingPage from "./pages/TrackingPage";
+import Confidentialite from "./pages/Confidentialite";
+import MentionsLegales from "./pages/MentionsLegales";
 
 function Router() {
   return (
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/editor" component={Editor} />
       <Route path="/r/:slug" component={RecipientFunnel} />
       <Route path="/track/:token" component={TrackingPage} />
+      <Route path="/confidentialite" component={Confidentialite} />
+      <Route path="/mentions-legales" component={MentionsLegales} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
