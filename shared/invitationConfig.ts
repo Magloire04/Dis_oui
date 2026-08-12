@@ -66,7 +66,9 @@ export const invitationConfigSchema = z.object({
   teases: z.array(shortText(120)).min(1).max(MAX_TEASES),
 
   selectedDates: z.array(dateSlotSchema).min(1).max(MAX_DATE_SLOTS),
-  customTimeNote: z.string().trim().max(80).default(""),
+  // `customTimeNote` a été retiré : il n'était affiché nulle part, et le
+  // libellé porté par chaque créneau remplit désormais ce rôle. Les anciennes
+  // configurations le conservent en base, Zod l'ignore simplement.
 
   selectedMenuOptions: z.array(shortText(32)).min(1).max(MAX_MENU_OPTIONS),
   includeSurprise: z.boolean(),
@@ -111,7 +113,6 @@ export function userAuthoredText(config: InvitationConfig): string[] {
     config.senderName,
     config.question,
     config.subtitle,
-    config.customTimeNote,
     config.finalMessage,
     ...config.teases,
     // Seul le libellé d'un créneau est rédigé : ni son identifiant ni sa date.

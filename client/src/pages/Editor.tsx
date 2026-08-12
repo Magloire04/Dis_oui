@@ -3,12 +3,13 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { THEMES, MENU_OPTIONS_PRESETS, TONE_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import {
   DEFAULT_SLOT_DURATION_MIN,
   invitationConfigSchema,
+  LINK_DURATIONS,
   MAX_DATE_SLOTS,
   type DateSlot,
   type MotionIntensity,
@@ -19,23 +20,23 @@ import {
 } from "@shared/invitationConfig";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { 
-  Heart, 
-  ArrowLeft, 
-  ArrowRight, 
-  Check, 
-  Sparkles, 
-  Smile, 
-  Calendar, 
-  Utensils, 
-  Palette, 
+import { QrCode as QrCodeSvg } from "@/components/QrCode";
+import {
+  Heart,
+  ArrowLeft,
+  ArrowRight,
+  Sparkles,
+  Smile,
+  Calendar,
+  Utensils,
+  Palette,
   Send,
   RotateCcw,
   Copy,
-  CheckCircle2,
-  QrCode
 } from "lucide-react";
 import { toast } from "sonner";
+
+const DRAFT_STORAGE_KEY = "dis_oui_draft";
 
 // --- Créneaux ---------------------------------------------------------------
 
@@ -149,7 +150,6 @@ export default function Editor() {
 
   // Time slots
   const [selectedDates, setSelectedDates] = useState<DateSlot[]>(() => defaultSlots());
-  const [customTimeNote, setCustomTimeNote] = useState("19h00 — en retard, mais avec classe");
 
   // Menu & Options
   const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["sushi", "italien", "bistrot"]);
@@ -170,29 +170,77 @@ export default function Editor() {
   // Result state after creation
   const [createdResult, setCreatedResult] = useState<{ slug: string; creatorToken: string; trackingUrl: string; recipientUrl: string } | null>(null);
 
-  const currentTheme = THEMES[themeKey] || THEMES.blush;
+  const currentTheme = THEMES[themeKey];
 
-  // Auto load from localStorage
+  // Rassemble l'état du formulaire dans la forme attendue par l'API.
+  // Une seule source de vérité pour la sauvegarde du brouillon et l'envoi.
+  const buildConfigDraft = () => ({
+    recipientName,
+    senderName,
+    relation,
+    tone,
+    question,
+    subtitle,
+    emoji,
+    noButtonBehavior,
+    maxRefusals,
+    // Le textarea de taquineries produit une ligne vide à chaque retour
+    // chariot ; elles ne doivent pas partir en base.
+    teases: teases.map(t => t.trim()).filter(Boolean),
+    selectedDates,
+    selectedMenuOptions,
+    includeSurprise,
+    includeVenue,
+    themeKey,
+    enableAnimation,
+    motionIntensity,
+    finalMessage,
+  });
+
+  // Le brouillon enregistrait 7 champs mais n'en restaurait que 5 : `relation`
+  // et `tone` étaient perdus au rechargement, et tout le reste du formulaire
+  // (créneaux, menus, message final) n'était pas sauvegardé du tout.
+  // Un seul objet, validé par le schéma partagé au rechargement.
   useEffect(() => {
-    const saved = localStorage.getItem("dis_oui_draft");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.recipientName) setRecipientName(parsed.recipientName);
-        if (parsed.senderName) setSenderName(parsed.senderName);
-        if (parsed.creatorEmail) setCreatorEmail(parsed.creatorEmail);
-        if (parsed.question) setQuestion(parsed.question);
-        if (parsed.themeKey) setThemeKey(parsed.themeKey);
-      } catch (e) {}
+    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!saved) return;
+
+    try {
+      const { config, creatorEmail: savedEmail, linkDuration: savedDuration, allowMultiple: savedMultiple } =
+        JSON.parse(saved);
+
+      const parsed = invitationConfigSchema.safeParse(config);
+      if (parsed.success) {
+        const c = parsed.data;
+        setRecipientName(c.recipientName);
+        setSenderName(c.senderName);
+        setRelation(c.relation);
+        setTone(c.tone);
+        setQuestion(c.question);
+        setSubtitle(c.subtitle);
+        setEmoji(c.emoji);
+        setNoButtonBehavior(c.noButtonBehavior);
+        setMaxRefusals(c.maxRefusals);
+        setTeases(c.teases);
+        setSelectedDates(c.selectedDates);
+        setSelectedMenuOptions(c.selectedMenuOptions);
+        setIncludeSurprise(c.includeSurprise);
+        setIncludeVenue(c.includeVenue);
+        setThemeKey(c.themeKey);
+        setEnableAnimation(c.enableAnimation);
+        setMotionIntensity(c.motionIntensity);
+        setFinalMessage(c.finalMessage);
+      }
+
+      if (typeof savedEmail === "string") setCreatorEmail(savedEmail);
+      if (LINK_DURATIONS.includes(savedDuration)) setLinkDuration(savedDuration);
+      if (typeof savedMultiple === "boolean") setAllowMultiple(savedMultiple);
+    } catch {
+      // Brouillon corrompu ou issu d'une version antérieure du schéma :
+      // on repart des valeurs par défaut plutôt que de bloquer l'éditeur.
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
     }
   }, []);
-
-  // Save to localStorage on change
-  useEffect(() => {
-    localStorage.setItem("dis_oui_draft", JSON.stringify({
-      recipientName, senderName, relation, tone, question, themeKey, creatorEmail
-    }));
-  }, [recipientName, senderName, relation, tone, question, themeKey, creatorEmail]);
 
   // Update teases when tone changes
   const handleToneChange = (newTone: Tone) => {
@@ -200,6 +248,14 @@ export default function Editor() {
     setQuestion(TONE_PRESETS[newTone].question);
     setTeases(TONE_PRESETS[newTone].teases);
   };
+
+  // Sauvegarde du brouillon à chaque modification du formulaire.
+  useEffect(() => {
+    localStorage.setItem(
+      DRAFT_STORAGE_KEY,
+      JSON.stringify({ config: buildConfigDraft(), creatorEmail, linkDuration, allowMultiple })
+    );
+  });
 
   const createMutation = trpc.invitations.create.useMutation({
     onSuccess: (data) => {
@@ -219,29 +275,7 @@ export default function Editor() {
 
     // Même schéma que celui appliqué par l'API : les erreurs sont détectées
     // ici plutôt que renvoyées par le serveur après un aller-retour.
-    const parsed = invitationConfigSchema.safeParse({
-      recipientName,
-      senderName,
-      relation,
-      tone,
-      question,
-      subtitle,
-      emoji,
-      noButtonBehavior,
-      maxRefusals,
-      // Le textarea de taquineries produit une ligne vide à chaque retour
-      // chariot ; elles ne doivent pas partir en base.
-      teases: teases.map(t => t.trim()).filter(Boolean),
-      selectedDates,
-      customTimeNote,
-      selectedMenuOptions,
-      includeSurprise,
-      includeVenue,
-      themeKey,
-      enableAnimation,
-      motionIntensity,
-      finalMessage,
-    });
+    const parsed = invitationConfigSchema.safeParse(buildConfigDraft());
 
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
@@ -262,7 +296,6 @@ export default function Editor() {
 
   if (createdResult) {
     const fullRecipientUrl = `${window.location.origin}${createdResult.recipientUrl}`;
-    const fullTrackingUrl = `${window.location.origin}${createdResult.trackingUrl}`;
 
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
@@ -297,16 +330,26 @@ export default function Editor() {
             </div>
           </div>
 
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center gap-3">
+            <QrCodeSvg value={fullRecipientUrl} size={168} title={`QR code de l'invitation pour ${recipientName}`} />
+            <p className="text-xs text-stone-500 max-w-xs">
+              Faites scanner ce code pour ouvrir l'invitation directement sur son téléphone.
+            </p>
+          </div>
+
+          {/* `flex-1 min-w-0` et non `w-full` : le composant Button porte
+              `shrink-0`, deux boutons à 100 % dans une rangée flex ne pouvaient
+              pas rétrécir et débordaient de la page. */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button 
+            <Button
               onClick={() => window.open(fullRecipientUrl, '_blank')}
               variant="outline"
-              className="w-full rounded-xl py-3 border-stone-300">
+              className="flex-1 min-w-0 rounded-xl py-3 border-stone-300">
               Tester l'expérience destinataire
             </Button>
-            <Button 
+            <Button
               onClick={() => setLocation(createdResult.trackingUrl)}
-              className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-xl py-3">
+              className="flex-1 min-w-0 bg-stone-900 hover:bg-stone-800 text-white rounded-xl py-3">
               Voir la page de suivi privée
             </Button>
           </div>
@@ -492,6 +535,20 @@ export default function Editor() {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700" htmlFor="sous-titre">
+                    Sous-titre (sous la question)
+                  </label>
+                  <Input
+                    id="sous-titre"
+                    value={subtitle}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    maxLength={120}
+                    placeholder="ex: J'ai une surprise pour toi..."
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-xs font-semibold text-stone-700">Emoji ou illustration principale</label>
                   <div className="flex items-center gap-3">
                     {["💌", "💖", "🌹", "🥂", "🍕", "✨", "🔥", "🍓", "☕"].map((em) => (
@@ -533,6 +590,27 @@ export default function Editor() {
                     ))}
                   </div>
                 </div>
+
+                {noButtonBehavior !== "desactive" && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="max-refus">
+                      Nombre de refus avant que le bouton abandonne : {maxRefusals}
+                    </label>
+                    <input
+                      id="max-refus"
+                      type="range"
+                      min={1}
+                      max={30}
+                      value={maxRefusals}
+                      onChange={(e) => setMaxRefusals(Number(e.target.value))}
+                      className="w-full accent-rose-600"
+                    />
+                    <p className="text-[11px] text-stone-500">
+                      Passé ce nombre, le bouton « Non » se désactive et le destinataire garde une
+                      porte de sortie explicite.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-stone-700">Phrases de taquinerie (une par ligne)</label>
@@ -633,14 +711,6 @@ export default function Editor() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700">Libellé humoristique des horaires</label>
-                  <Input 
-                    value={customTimeNote} 
-                    onChange={(e) => setCustomTimeNote(e.target.value)} 
-                    className="rounded-xl"
-                  />
-                </div>
               </div>
             )}
 
@@ -722,6 +792,49 @@ export default function Editor() {
                   ))}
                 </div>
 
+                <div className="space-y-3 rounded-2xl border border-stone-200 p-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableAnimation}
+                      onChange={(e) => setEnableAnimation(e.target.checked)}
+                      className="w-4 h-4 accent-rose-600 rounded"
+                    />
+                    <span className="text-sm text-stone-700 font-medium">Activer les animations d'écran</span>
+                  </label>
+
+                  {enableAnimation && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-stone-700">Intensité du mouvement</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { id: "subtile", label: "Subtile" },
+                          { id: "normal", label: "Normale" },
+                          { id: "intense", label: "Intense" },
+                        ] as const).map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setMotionIntensity(m.id)}
+                            className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+                              motionIntensity === m.id
+                                ? "border-rose-500 bg-rose-50 text-rose-800"
+                                : "border-stone-200 text-stone-700 hover:border-stone-300"
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-stone-500">
+                    Les animations sont de toute façon neutralisées pour les personnes ayant activé
+                    « réduire les animations » dans leur système.
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-stone-700">Message final personnalisé sur le billet</label>
                   <Textarea 
@@ -765,7 +878,25 @@ export default function Editor() {
                     <option value={30}>30 jours (recommandé)</option>
                     <option value={90}>90 jours</option>
                   </select>
+                  <p className="text-[11px] text-stone-500">
+                    Passé ce délai, l'invitation et sa réponse sont définitivement supprimées.
+                  </p>
                 </div>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowMultiple}
+                    onChange={(e) => setAllowMultiple(e.target.checked)}
+                    className="w-4 h-4 accent-rose-600 rounded mt-0.5"
+                  />
+                  <span className="text-sm text-stone-700 font-medium">
+                    Autoriser plusieurs réponses
+                    <span className="block text-[11px] font-normal text-stone-500">
+                      Par défaut, le lien se verrouille après la première réponse.
+                    </span>
+                  </span>
+                </label>
 
                 <div className="pt-4">
                   <Button 

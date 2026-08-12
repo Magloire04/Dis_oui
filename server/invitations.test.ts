@@ -49,7 +49,6 @@ const validConfig: InvitationConfig = {
       durationMin: 120,
     },
   ],
-  customTimeNote: "19h00 — en retard, mais avec classe",
   selectedMenuOptions: ["sushi", "italien"],
   includeSurprise: true,
   includeVenue: true,
