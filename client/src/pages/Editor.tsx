@@ -767,17 +767,22 @@ export default function Editor() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {/* Le nom reprend la couleur de texte du thème : en
+                      text-stone-900 fixe, il était illisible sur Minuit,
+                      Forêt et Néon. */}
                   {Object.values(THEMES).map((th) => (
-                    <div
+                    <button
                       key={th.id}
+                      type="button"
+                      aria-pressed={themeKey === th.id}
                       onClick={() => setThemeKey(th.id)}
                       className={`cursor-pointer p-4 rounded-2xl border transition-all text-center space-y-2 bg-gradient-to-br ${th.bgGradient} ${
                         themeKey === th.id ? "ring-2 ring-brand-600 shadow-lg scale-102" : "border-stone-200 shadow-sm"
                       }`}
                     >
-                      <span className="text-2xl">{th.emoji}</span>
-                      <h4 className="font-bold text-stone-900 text-xs">{th.name}</h4>
-                    </div>
+                      <span className="block text-2xl">{th.emoji}</span>
+                      <span className={`block font-bold text-xs ${th.textColor}`}>{th.name}</span>
+                    </button>
                   ))}
                 </div>
 

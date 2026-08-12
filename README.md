@@ -1,12 +1,16 @@
 <div align="center">
 
-# 💌 Dis oui
+<img src="client/public/favicon.svg" alt="" width="64">
+
+# Dis oui
 
 **Transformez une demande de rendez-vous en petit moment de suspense.**
 
 Le créateur compose une invitation en six étapes, partage un lien,
 et reçoit la réponse par e-mail avec un fichier calendrier prêt à ouvrir.
 Aucun compte, aucun mot de passe.
+
+Un produit **[ByTechnum](https://github.com/Magloire04)** — la technologie à votre portée.
 
 <img src="docs/images/accueil.png" alt="Page d'accueil de Dis oui" width="820">
 
@@ -36,7 +40,7 @@ Aucun compte, aucun mot de passe.
 | | |
 |---|---|
 | **Bouton « Non » taquin** | il fuit le curseur, rétrécit à chaque clic, ou les deux — puis rend les armes en laissant une vraie porte de sortie |
-| **Six thèmes** | Blush, Minuit, Agrume, Forêt, Sépia, Néon — chacun habille les six écrans, pas seulement le fond |
+| **Sept thèmes** | Blush, Minuit, Agrume, Forêt, Sépia, Néon et ByTechnum — chacun habille les six écrans, pas seulement le fond |
 | **Créneaux datés** | le libellé garde la formulation libre (« vendredi soir »), la date réelle alimente le fichier calendrier |
 | **Fichier `.ics` valide** | conforme RFC 5545, généré par le même code côté client et côté serveur |
 | **Aperçus de partage neutres** | coller le lien affiche « Quelqu'un t'a envoyé quelque chose 👀 », jamais le contenu |
@@ -49,7 +53,8 @@ Aucun compte, aucun mot de passe.
 <td width="50%"><img src="docs/images/suivi.png" alt="Page de suivi privée du créateur"><br><em>La page de suivi privée</em></td>
 </tr>
 <tr>
-<td colspan="2" align="center"><img src="docs/images/funnel-question.png" alt="Le funnel destinataire, thème Minuit" width="620"><br><em>Le funnel destinataire — thème Minuit, bouton « Non » en fuite</em></td>
+<td align="center"><img src="docs/images/funnel-question.png" alt="Le funnel destinataire, thème Minuit" width="330"><br><em>Thème Minuit, bouton « Non » en fuite</em></td>
+<td align="center"><img src="docs/images/theme-bytechnum.png" alt="Le funnel destinataire, thème ByTechnum" width="330"><br><em>Thème ByTechnum, pour les invitations professionnelles</em></td>
 </tr>
 </table>
 
@@ -76,8 +81,8 @@ navigateur ──► /api/trpc ──► Express ──► appRouter ──► i
 Prérequis : **Node 20+**, **pnpm**, **MySQL 8**.
 
 ```bash
-git clone https://github.com/Magloire04/dit_oui.git
-cd dit_oui
+git clone https://github.com/Magloire04/Dis_oui.git
+cd Dis_oui
 pnpm install
 cp .env.example .env
 ```
@@ -129,7 +134,7 @@ configurer pour développer en local.**
 | Chemin | Contenu |
 |---|---|
 | `client/src/pages/` | accueil, éditeur, funnel destinataire, suivi, pages légales |
-| `client/src/lib/themes.ts` | les six thèmes et leurs jetons de style |
+| `client/src/lib/themes.ts` | les sept thèmes et leurs jetons de style |
 | `server/invitationsRouter.ts` | les cinq procédures tRPC |
 | `server/invitationsDb.ts` | accès données, rate limiting, purge |
 | `server/emailService.ts` | notification du créateur via Resend |
@@ -176,10 +181,38 @@ ajouter un champ suffit à le voir refusé partout où il est mal formé.
 
 ---
 
+## Identité visuelle
+
+L'habillage de l'application suit la charte **ByTechnum** ; les thèmes
+d'invitation, eux, sont le contenu créatif vu par le destinataire et gardent
+leurs palettes propres. Seul le septième thème reprend la charte, pour les
+invitations à usage professionnel.
+
+| | |
+|---|---|
+| Bleu de charte | `#4f6bf6` — utilisé tel quel pour le logo |
+| Bleu d'interface | `#4d69f1` (`brand-600`) — 2 % plus sombre pour que le blanc atteigne 4,56:1, le seuil AA. Voir le commentaire de l'échelle dans `client/src/index.css`. |
+| Anthracite | `#2d2d2d` (`ink-900`) |
+| Titres et marque | Poppins 600/700 |
+| Texte courant | Inter |
+
+Les deux polices sont **auto-hébergées** via `@fontsource` : charger Google
+Fonts contredirait la page `/confidentialite`, qui affirme qu'aucun tiers n'est
+sollicité.
+
+Le logo (`client/src/components/BrandMark.tsx`) reprend les codes ByTechnum —
+accolades et motif pixellisé — appliqués au produit : un cœur en pixels entre
+deux accolades. `client/public/favicon.svg` doit rester géométriquement
+identique au composant.
+
+---
+
 ## Avant une mise en ligne publique
 
-- [ ] Renseigner les mentions légales (`client/src/pages/MentionsLegales.tsx`) :
-      identité de l'éditeur et de l'hébergeur, obligatoires, signalées en jaune
+- [ ] Compléter les mentions légales (`client/src/pages/MentionsLegales.tsx`) :
+      l'éditeur, le contact et le directeur de la publication sont renseignés ;
+      restent le **statut juridique**, l'**adresse postale**, les identifiants
+      **RCCM / IFU** et tout le bloc **hébergeur**. Ils sont surlignés en jaune
       dans la page.
 - [ ] Créer un compte Resend, vérifier un domaine d'envoi, renseigner
       `RESEND_API_KEY` et `RESEND_FROM`.
