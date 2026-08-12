@@ -1,4 +1,5 @@
 import { ENV } from "./_core/env";
+import { logEvent } from "./operationLog";
 import { buildRendezVousIcs } from "@shared/ics";
 import type { InvitationAnswer, ThemeId } from "@shared/invitationConfig";
 
@@ -189,5 +190,10 @@ export async function sendCreatorNotification(
   }
 
   const sent = await sendViaResend({ to: options.toEmail, subject, html, icsContent });
+
+  // Journalisé sans l'adresse : la console doit signaler qu'un envoi a échoué,
+  // pas conserver à qui il était destiné.
+  await logEvent("email", sent ? "ok" : "error", { hasCalendarFile, theme: options.theme });
+
   return { sent, hasCalendarFile };
 }

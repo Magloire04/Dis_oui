@@ -15,6 +15,7 @@ import {
   RATE_LIMITS,
 } from "./invitationsDb";
 import { findForbiddenTerm } from "./contentFilter";
+import { logEvent } from "./operationLog";
 import { sendCreatorNotification } from "./emailService";
 import {
   invitationAnswerSchema,
@@ -64,6 +65,7 @@ export const invitationsRouter = router({
 
       const allowed = await checkRateLimit(ipHash, "create_invitation");
       if (!allowed) {
+        await logEvent("rate_limit", "blocked", { action: "create_invitation" });
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
           message: `Trop d'invitations créées depuis cette adresse. Veuillez réessayer plus tard (limite : ${RATE_LIMITS.perHour} par heure, ${RATE_LIMITS.perDay} par jour).`,
@@ -72,6 +74,9 @@ export const invitationsRouter = router({
 
       const forbidden = findForbiddenTerm(userAuthoredText(input.config));
       if (forbidden) {
+        // Seul le terme déclencheur est consigné, jamais la phrase : le
+        // journal n'a pas à conserver le texte rédigé par l'utilisateur.
+        await logEvent("moderation", "blocked", { terme: forbidden });
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: `Le terme « ${forbidden} » n'est pas autorisé par notre politique de modération.`,

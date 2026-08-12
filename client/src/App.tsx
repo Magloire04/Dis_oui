@@ -10,6 +10,7 @@ import RecipientFunnel from "./pages/RecipientFunnel";
 import TrackingPage from "./pages/TrackingPage";
 import Confidentialite from "./pages/Confidentialite";
 import MentionsLegales from "./pages/MentionsLegales";
+import Admin from "./pages/Admin";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/track/:token" component={TrackingPage} />
       <Route path="/confidentialite" component={Confidentialite} />
       <Route path="/mentions-legales" component={MentionsLegales} />
+      <Route path="/admin" component={Admin} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

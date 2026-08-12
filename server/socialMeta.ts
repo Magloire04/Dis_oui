@@ -35,6 +35,12 @@ const PRIVATE_TRACKING: SocialMeta = {
   noIndex: true,
 };
 
+const CONSOLE_ADMIN: SocialMeta = {
+  title: "Console d'exploitation",
+  description: "Accès réservé.",
+  noIndex: true,
+};
+
 /**
  * Renvoie les métadonnées à appliquer, ou `null` pour laisser celles du
  * gabarit.
@@ -48,6 +54,7 @@ export function socialMetaForPath(url: string): SocialMeta | null {
   const pathname = url.split(/[?#]/)[0];
   if (/^\/r\/[^/]+\/?$/.test(pathname)) return PRIVATE_INVITATION;
   if (/^\/track\/[^/]+\/?$/.test(pathname)) return PRIVATE_TRACKING;
+  if (/^\/admin\/?$/.test(pathname)) return CONSOLE_ADMIN;
   return null;
 }
 

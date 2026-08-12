@@ -2,6 +2,7 @@ import { and, asc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
+import { LOGIN_ATTEMPT_LIMIT, LOGIN_WINDOW_MS } from "./adminAuth";
 import { invitations, responses, rateLimits } from "../drizzle/schema";
 
 /**
@@ -83,6 +84,26 @@ export async function checkRateLimit(ipHash: string, actionType: string): Promis
 
   const db = await requireDb();
   await db.insert(rateLimits).values({ ipHash, actionType, timestamp: now });
+  return true;
+}
+
+/**
+ * Rate limiting des tentatives de connexion à la console.
+ *
+ * Fenêtre propre, plus courte et plus permissive que celle des invitations :
+ * appliquer 3 par heure verrouillerait l'éditeur pour une simple faute de
+ * frappe, tandis que 5 par quart d'heure rend une attaque par essais
+ * successifs inopérante.
+ */
+export async function checkLoginAttempt(ipHash: string): Promise<boolean> {
+  const now = new Date();
+  const depuis = new Date(now.getTime() - LOGIN_WINDOW_MS);
+
+  const tentatives = await countAttemptsSince(ipHash, "admin_login", depuis);
+  if (tentatives >= LOGIN_ATTEMPT_LIMIT) return false;
+
+  const db = await requireDb();
+  await db.insert(rateLimits).values({ ipHash, actionType: "admin_login", timestamp: now });
   return true;
 }
 

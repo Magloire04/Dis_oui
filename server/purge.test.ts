@@ -112,7 +112,7 @@ describe("purge RGPD", () => {
 
   it("ne supprime rien quand tout est encore valide", async () => {
     await createAndExpire({}, false);
-    await expect(runPurge()).resolves.toEqual({
+    await expect(runPurge()).resolves.toMatchObject({
       invitationsSupprimees: 0,
       compteursSupprimes: 0,
     });

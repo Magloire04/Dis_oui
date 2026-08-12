@@ -1,4 +1,5 @@
 import { deleteExpiredInvitations, deleteOldRateLimits } from "./invitationsDb";
+import { deleteOldEvents, logEvent } from "./operationLog";
 
 /**
  * Purge RGPD.
@@ -19,12 +20,23 @@ const PURGE_INTERVAL_MS = 60 * 60 * 1000;
 export type PurgeReport = {
   invitationsSupprimees: number;
   compteursSupprimes: number;
+  evenementsSupprimes: number;
 };
 
 export async function runPurge(): Promise<PurgeReport> {
   const invitationsSupprimees = await deleteExpiredInvitations();
   const compteursSupprimes = await deleteOldRateLimits();
-  return { invitationsSupprimees, compteursSupprimes };
+  // Le journal d'exploitation a sa propre rétention : il n'est rattaché à
+  // aucune invitation et ne partirait donc jamais par cascade.
+  const evenementsSupprimes = await deleteOldEvents();
+
+  const rapport = { invitationsSupprimees, compteursSupprimes, evenementsSupprimes };
+
+  // Trace de chaque passage : la console doit pouvoir montrer que la purge
+  // tourne, y compris quand elle n'a rien trouvé à supprimer.
+  await logEvent("purge", "ok", rapport);
+
+  return rapport;
 }
 
 /**
@@ -47,6 +59,9 @@ export function startPurgeSchedule(intervalMs = PURGE_INTERVAL_MS): () => void {
       // Une purge ratée ne doit pas faire tomber le serveur : le prochain
       // passage réessaiera.
       console.error("[Purge] Échec du passage de purge:", error);
+      await logEvent("purge", "error", {
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   };
 

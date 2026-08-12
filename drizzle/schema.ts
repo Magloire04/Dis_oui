@@ -45,6 +45,36 @@ export const responses = mysqlTable("responses", {
 export type ResponseRecord = typeof responses.$inferSelect;
 export type InsertResponseRecord = typeof responses.$inferInsert;
 
+/**
+ * Journal d'exploitation, lu par la console d'administration.
+ *
+ * N'y sont consignés que les événements rares qui doivent survivre à un
+ * redémarrage : échec d'envoi, passage de purge, rejet de modération, blocage
+ * de débit. Les mesures de performance, elles, restent en mémoire (voir
+ * server/metrics.ts) : les inscrire ici transformerait chaque lecture en
+ * écriture.
+ *
+ * `detail` ne doit jamais contenir de donnée personnelle — ni e-mail, ni
+ * prénom, ni contenu d'invitation. Ce journal n'est pas soumis à la purge des
+ * invitations, il ne doit donc rien porter d'identifiant.
+ */
+export const operationEvents = mysqlTable(
+  "operationEvents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** `email`, `purge`, `moderation`, `rate_limit`. */
+    kind: varchar("kind", { length: 32 }).notNull(),
+    /** `ok`, `error`, `blocked`. */
+    outcome: varchar("outcome", { length: 16 }).notNull(),
+    detail: json("detail"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [index("operationEvents_lookup_idx").on(table.kind, table.createdAt)]
+);
+
+export type OperationEvent = typeof operationEvents.$inferSelect;
+export type InsertOperationEvent = typeof operationEvents.$inferInsert;
+
 // L'index composite couvre l'unique requête faite sur cette table : compter les
 // tentatives d'un couple (ipHash, actionType) sur une fenêtre glissante. Sans
 // lui, chaque création d'invitation déclenche un scan complet.

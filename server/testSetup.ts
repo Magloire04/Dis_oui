@@ -41,7 +41,7 @@ process.env.IP_HASH_SALT ||= "test-salt";
 
 // Les tables sont vidées dans l'ordre inverse des dépendances : `responses`
 // référence `invitations` avec une clé étrangère.
-const TABLES_TO_CLEAR = ["responses", "invitations", "rateLimits"] as const;
+const TABLES_TO_CLEAR = ["responses", "invitations", "rateLimits", "operationEvents"] as const;
 
 // Connexion unique et non poolée : la migration 0003 s'appuie sur
 // PREPARE/EXECUTE, qui sont liés à une session MySQL. Un pool répartirait ces

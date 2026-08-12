@@ -14,4 +14,8 @@ export const ENV = {
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   resendFrom: process.env.RESEND_FROM ?? "Dis oui <onboarding@resend.dev>",
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3000",
+  // Mot de passe unique du tableau de bord d'administration. Vide, la console
+  // est purement et simplement inaccessible — c'est le comportement voulu tant
+  // qu'aucun mot de passe n'a été choisi.
+  adminPassword: process.env.ADMIN_PASSWORD ?? "",
 };
