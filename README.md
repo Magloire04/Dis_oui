@@ -122,7 +122,7 @@ configurer pour développer en local.**
 |---|---|
 | `pnpm dev` | serveur de développement, API et client |
 | `pnpm check` | vérification TypeScript, tests inclus |
-| `pnpm test` | 69 tests Vitest sur la base `_test` |
+| `pnpm test` | 89 tests Vitest sur la base `_test` |
 | `pnpm build` | client dans `dist/public`, serveur dans `dist` |
 | `pnpm start` | exécution du build de production |
 | `pnpm exec drizzle-kit generate` | migration depuis `drizzle/schema.ts` |
@@ -140,6 +140,9 @@ configurer pour développer en local.**
 | `server/emailService.ts` | notification du créateur via Resend |
 | `server/purge.ts` | suppression périodique des données expirées |
 | `server/socialMeta.ts` | aperçus de partage neutres sur les liens privés |
+| `client/src/pages/Admin.tsx` | console d'exploitation, sur `/admin` |
+| `server/adminRouter.ts`, `server/adminDb.ts` | procédures et agrégats de la console |
+| `server/metrics.ts`, `server/operationLog.ts` | mesures en mémoire, journal d'exploitation |
 | `shared/invitationConfig.ts` | schéma Zod partagé client / serveur |
 | `shared/ics.ts` | génération iCalendar (RFC 5545) |
 | `server/_core/`, `shared/_core/` | socle du gabarit d'origine (OAuth, stockage, LLM), peu utilisé ici |
@@ -207,6 +210,31 @@ identique au composant.
 
 ---
 
+## Console d'exploitation
+
+Sur `/admin`, protégée par un mot de passe unique : renseignez `ADMIN_PASSWORD`
+dans `.env`. Laissé vide, la console est inaccessible et le dit.
+
+| Onglet | Ce qu'il montre |
+|---|---|
+| **Usage** | volumes, taux d'ouverture et de réponse, activité sur 30 jours, thèmes et durées retenus, délai médian avant réponse |
+| **Santé** | état de la base, mode d'envoi des e-mails, dernier passage de purge, événements des 7 derniers jours |
+| **Performances** | médiane et p95 par procédure tRPC, taux d'erreur |
+| **Modération** | rejets du filtre de contenu, dernières invitations, suppression sur signalement |
+
+Deux partis pris à connaître avant d'y toucher :
+
+- **Les mesures de performance vivent en mémoire**, dans un tampon de 500 appels
+  par procédure. Les écrire en base transformerait chaque lecture du site en
+  écriture. Elles repartent donc de zéro à chaque redémarrage, ce que la console
+  affiche explicitement.
+- **Le journal d'exploitation ne contient aucune donnée personnelle.** Il échappe
+  à la purge des invitations : y écrire une adresse ou un prénom créerait une
+  conservation sans durée ni base légale. N'y figurent que la nature de
+  l'événement, son issue et des compteurs.
+
+---
+
 ## Avant une mise en ligne publique
 
 - [ ] Compléter les mentions légales (`client/src/pages/MentionsLegales.tsx`) :
@@ -219,6 +247,8 @@ identique au composant.
 - [ ] Renseigner `PUBLIC_BASE_URL` avec le domaine réel : il alimente les liens
       des e-mails.
 - [ ] Provisionner une base MySQL de production.
+- [ ] Choisir un mot de passe pour la console d’exploitation (`ADMIN_PASSWORD`),
+      distinct de celui du développement.
 - [ ] Générer des `JWT_SECRET` et `IP_HASH_SALT` distincts de ceux du
       développement. `IP_HASH_SALT` est **obligatoire** en production : sans
       sel, un hachage d'IPv4 se force brute en quelques minutes.
