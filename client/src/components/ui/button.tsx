@@ -20,11 +20,13 @@ const buttonVariants = cva(
           "hover:bg-accent dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
       },
+      // Mobile d'abord : les hauteurs tactiles (44 px) s'appliquent par défaut
+      // et se resserrent à partir de `md`, où l'on pointe à la souris.
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        default: "h-11 md:h-9 px-4 py-2 has-[>svg]:px-3",
+        sm: "h-10 md:h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+        lg: "h-12 md:h-10 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-11 md:size-9",
         "icon-sm": "size-8",
         "icon-lg": "size-10",
       },

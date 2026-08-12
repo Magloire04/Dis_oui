@@ -359,7 +359,12 @@ export default function Editor() {
             <span className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
             <BrandMark size={21} decorative />
           </span>
-            <span className="font-display font-bold text-ink-900">Éditeur Dis oui</span>
+            {/* Titre court sous `sm` : « Éditeur Dis oui » se repliait sur deux
+                lignes et écrasait la barre sur un écran de 360 px. */}
+            <span className="font-display font-bold text-ink-900 whitespace-nowrap">
+              <span className="sm:hidden">Éditeur</span>
+              <span className="hidden sm:inline">Éditeur Dis oui</span>
+            </span>
           </div>
         </div>
 
@@ -409,7 +414,7 @@ export default function Editor() {
                   <button
                     key={s.id}
                     onClick={() => setStep(s.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    className={`flex items-center gap-2 px-3 min-h-11 rounded-xl text-xs font-bold transition-all shrink-0 ${
                       isActive 
                         ? "bg-brand-600 text-white shadow-md shadow-brand-600/20" 
                         : isPassed 
@@ -466,7 +471,7 @@ export default function Editor() {
                         key={rel.id}
                         type="button"
                         onClick={() => setRelation(rel.id)}
-                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
+                        className={`p-3 min-h-12 rounded-xl border text-xs font-bold transition-all text-center ${
                           relation === rel.id 
                             ? "border-brand-600 bg-brand-50 text-brand-800 shadow-sm" 
                             : "border-stone-200 text-stone-700 hover:border-stone-300"
@@ -491,7 +496,7 @@ export default function Editor() {
                         key={t.id}
                         type="button"
                         onClick={() => handleToneChange(t.id)}
-                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
+                        className={`p-3 min-h-12 rounded-xl border text-xs font-bold transition-all text-center ${
                           tone === t.id 
                             ? "border-brand-600 bg-brand-50 text-brand-800 shadow-sm" 
                             : "border-stone-200 text-stone-700 hover:border-stone-300"
@@ -545,7 +550,7 @@ export default function Editor() {
                         key={em}
                         type="button"
                         onClick={() => setEmoji(em)}
-                        className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border transition-all ${
+                        className={`w-11 h-11 rounded-xl text-xl flex items-center justify-center border transition-all ${
                           emoji === em ? "border-brand-600 bg-brand-50 scale-110" : "border-stone-200 hover:bg-stone-50"
                         }`}
                       >
@@ -568,7 +573,7 @@ export default function Editor() {
                         key={b.id}
                         type="button"
                         onClick={() => setNoButtonBehavior(b.id)}
-                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
+                        className={`p-3 min-h-12 rounded-xl border text-xs font-bold transition-all text-center ${
                           noButtonBehavior === b.id 
                             ? "border-brand-600 bg-brand-50 text-brand-800" 
                             : "border-stone-200 text-stone-700"
@@ -641,7 +646,7 @@ export default function Editor() {
                               size="icon"
                               aria-label={`Supprimer le créneau ${idx + 1}`}
                               onClick={() => setSelectedDates(selectedDates.filter((_, i) => i !== idx))}
-                              className="text-stone-400 hover:text-red-500 h-7 w-7">
+                              className="text-stone-400 hover:text-red-500 h-11 w-11 md:h-8 md:w-8">
                               ✕
                             </Button>
                           )}
@@ -724,7 +729,7 @@ export default function Editor() {
                             setSelectedMenuOptions([...selectedMenuOptions, opt.id]);
                           }
                         }}
-                        className={`cursor-pointer p-4 rounded-2xl border flex items-center gap-3 transition-all ${
+                        className={`cursor-pointer p-4 min-h-14 rounded-2xl border flex items-center gap-3 transition-all ${
                           isSelected ? "border-brand-600 bg-brand-50/50 shadow-sm" : "border-stone-200 hover:border-stone-300"
                         }`}
                       >
@@ -736,21 +741,21 @@ export default function Editor() {
                 </div>
 
                 <div className="space-y-3 pt-2">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex items-center gap-3 min-h-11 cursor-pointer">
                     <input 
                       type="checkbox" 
                       checked={includeSurprise} 
                       onChange={(e) => setIncludeSurprise(e.target.checked)}
-                      className="w-4 h-4 accent-brand-600 rounded"
+                      className="w-5 h-5 accent-brand-600 rounded shrink-0"
                     />
                     <span className="text-sm text-stone-700 font-medium">Ajouter l'option « Surprends-moi » ✨</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex items-center gap-3 min-h-11 cursor-pointer">
                     <input 
                       type="checkbox" 
                       checked={includeVenue} 
                       onChange={(e) => setIncludeVenue(e.target.checked)}
-                      className="w-4 h-4 accent-brand-600 rounded"
+                      className="w-5 h-5 accent-brand-600 rounded shrink-0"
                     />
                     <span className="text-sm text-stone-700 font-medium">Autoriser le destinataire à proposer un lieu 📍</span>
                   </label>
@@ -787,12 +792,12 @@ export default function Editor() {
                 </div>
 
                 <div className="space-y-3 rounded-2xl border border-stone-200 p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex items-center gap-3 min-h-11 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={enableAnimation}
                       onChange={(e) => setEnableAnimation(e.target.checked)}
-                      className="w-4 h-4 accent-brand-600 rounded"
+                      className="w-5 h-5 accent-brand-600 rounded shrink-0"
                     />
                     <span className="text-sm text-stone-700 font-medium">Activer les animations d'écran</span>
                   </label>
@@ -810,7 +815,7 @@ export default function Editor() {
                             key={m.id}
                             type="button"
                             onClick={() => setMotionIntensity(m.id)}
-                            className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+                            className={`p-2 min-h-11 rounded-xl border text-xs font-bold transition-all ${
                               motionIntensity === m.id
                                 ? "border-brand-600 bg-brand-50 text-brand-800"
                                 : "border-stone-200 text-stone-700 hover:border-stone-300"
@@ -866,7 +871,7 @@ export default function Editor() {
                   <select 
                     value={linkDuration}
                     onChange={(e) => setLinkDuration(Number(e.target.value))}
-                    className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-800"
+                    className="w-full bg-white border border-stone-300 rounded-xl px-3 h-11 md:h-10 text-base md:text-sm font-medium text-stone-800"
                   >
                     <option value={7}>7 jours</option>
                     <option value={30}>30 jours (recommandé)</option>
@@ -877,12 +882,12 @@ export default function Editor() {
                   </p>
                 </div>
 
-                <label className="flex items-start gap-3 cursor-pointer">
+                <label className="flex items-start gap-3 min-h-11 py-1 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={allowMultiple}
                     onChange={(e) => setAllowMultiple(e.target.checked)}
-                    className="w-4 h-4 accent-brand-600 rounded mt-0.5"
+                    className="w-5 h-5 accent-brand-600 rounded mt-0.5 shrink-0"
                   />
                   <span className="text-sm text-stone-700 font-medium">
                     Autoriser plusieurs réponses

@@ -311,7 +311,7 @@ export default function RecipientFunnel() {
                     role="radio"
                     aria-checked={isSelected}
                     onClick={() => setSelectedSlot(slot)}
-                    className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                    className={`w-full text-left p-4 min-h-14 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                       isSelected ? theme.optionSelected : theme.optionIdle
                     }`}
                   >
@@ -359,7 +359,7 @@ export default function RecipientFunnel() {
                     role="radio"
                     aria-checked={isSelected}
                     onClick={() => setSelectedMenu(choice.label)}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center gap-3 ${
+                    className={`w-full text-left p-3.5 min-h-13 rounded-2xl border transition-all flex items-center gap-3 ${
                       isSelected ? theme.optionSelected : theme.optionIdle
                     }`}
                   >

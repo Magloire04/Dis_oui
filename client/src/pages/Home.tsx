@@ -4,12 +4,19 @@ import { Button } from "@/components/ui/button";
 import { THEMES } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import type { ThemeId } from "@shared/invitationConfig";
-import { ArrowRight, ShieldCheck, HelpCircle } from "lucide-react";
+import { ArrowRight, ShieldCheck, HelpCircle, Menu, X } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
+
+const NAV_LINKS = [
+  { href: "#how-it-works", label: "Comment ça marche" },
+  { href: "#themes", label: "Thèmes" },
+  { href: "#faq", label: "FAQ" },
+] as const;
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selectedThemeKey, setSelectedThemeKey] = useState<ThemeId>("blush");
+  const [menuOuvert, setMenuOuvert] = useState(false);
   const currentTheme = THEMES[selectedThemeKey];
 
   const { data: stats } = trpc.invitations.stats.useQuery();
@@ -17,55 +24,101 @@ export default function Home() {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bgGradient} transition-all duration-700 font-sans text-stone-900`}>
       {/* Navigation */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/70 border-b border-stone-200/50 px-6 py-4 flex items-center justify-between">
-        <button
-          type="button"
-          aria-label="Retour en haut de page"
-          className="flex items-center gap-2.5 cursor-pointer"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <span className="w-10 h-10 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-            <BrandMark size={26} decorative />
-          </span>
-          <span className="font-display text-xl font-bold tracking-tight text-ink-900">Dis oui</span>
-        </button>
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
-          <a href="#how-it-works" className="hover:text-brand-700 transition-colors">Comment ça marche</a>
-          <a href="#themes" className="hover:text-brand-700 transition-colors">Thèmes</a>
-          <a href="#faq" className="hover:text-brand-700 transition-colors">FAQ</a>
-        </nav>
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={() => setLocation("/editor")}
-            className="bg-brand-600 hover:bg-brand-700 text-white rounded-full px-6 py-2.5 shadow-lg shadow-brand-600/25 transition-all hover:scale-105">
-            Créer une invitation
-          </Button>
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-stone-200/50">
+        <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            aria-label="Retour en haut de page"
+            className="flex items-center gap-2 sm:gap-2.5 min-h-11 cursor-pointer shrink-0"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+            <span className="w-10 h-10 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+              <BrandMark size={26} decorative />
+            </span>
+            <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-ink-900">
+              Dis oui
+            </span>
+          </button>
+
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
+            {NAV_LINKS.map(lien => (
+              <a key={lien.href} href={lien.href} className="hover:text-brand-700 transition-colors">
+                {lien.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setLocation("/editor")}
+              className="bg-brand-600 hover:bg-brand-700 text-white rounded-full h-11 px-4 sm:px-6 shadow-lg shadow-brand-600/25 transition-all sm:hover:scale-105">
+              {/* Libellé court sous `sm` : l'intitulé complet écrasait le nom
+                  du site sur un écran de 360 px. */}
+              <span className="sm:hidden">Créer</span>
+              <span className="hidden sm:inline">Créer une invitation</span>
+            </Button>
+
+            {/* La navigation était en `hidden md:flex` sans aucun équivalent
+                mobile : les trois sections du site étaient inatteignables
+                depuis un téléphone. */}
+            <button
+              type="button"
+              onClick={() => setMenuOuvert(o => !o)}
+              aria-expanded={menuOuvert}
+              aria-controls="menu-mobile"
+              aria-label={menuOuvert ? "Fermer le menu" : "Ouvrir le menu"}
+              className="md:hidden w-11 h-11 -mr-1 flex items-center justify-center rounded-xl text-stone-700 hover:bg-stone-100 transition-colors">
+              {menuOuvert ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
+
+        {menuOuvert && (
+          <nav
+            id="menu-mobile"
+            className="md:hidden border-t border-stone-200/60 bg-white/95 px-4 py-2">
+            {NAV_LINKS.map(lien => (
+              <a
+                key={lien.href}
+                href={lien.href}
+                onClick={() => setMenuOuvert(false)}
+                className="flex items-center min-h-12 px-2 text-sm font-medium text-stone-700 hover:text-brand-700 border-b border-stone-100 last:border-0">
+                {lien.label}
+              </a>
+            ))}
+          </nav>
+        )}
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden px-6 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.1] text-stone-900">
+      <section className="relative overflow-hidden px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-12 items-center">
+        <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-center lg:text-left">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.15] sm:leading-[1.1] text-stone-900">
             {/* Le dégradé virait vers l'orange, absent de la charte ByTechnum. */}
             Transformez votre demande de rendez-vous en{" "}
             <span className="bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent">
               moment magique
             </span>.
           </h1>
-          <p className="text-lg md:text-xl text-stone-600 max-w-2xl mx-auto lg:mx-0 font-normal">
-            Créez une invitation interactive inoubliable en moins de 2 minutes. Bouton fuyant taquin, choix de créneaux, menu sur-mesure, et réponse reçue directement par e-mail avec un fichier calendrier `.ics`.
+          <p className="text-base sm:text-lg md:text-xl text-stone-600 max-w-2xl mx-auto lg:mx-0 font-normal">
+            {/* Les accents inverses autour de .ics venaient du markdown et
+                s'affichaient tels quels. */}
+            Créez une invitation interactive inoubliable en moins de 2 minutes. Bouton fuyant taquin,
+            choix de créneaux, menu sur-mesure, et réponse reçue directement par e-mail avec un
+            fichier calendrier prêt à ouvrir.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
-            <Button 
+            <Button
               onClick={() => setLocation("/editor")}
-              className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white text-base font-medium rounded-full px-8 py-4 shadow-xl shadow-brand-600/30 flex items-center justify-center gap-3 transition-all hover:scale-105">
+              className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white text-base font-medium rounded-full min-h-13 px-8 shadow-xl shadow-brand-600/30 flex items-center justify-center gap-3 transition-all sm:hover:scale-105">
               Créer un rendez-vous <ArrowRight className="w-5 h-5" />
             </Button>
-            <div className="flex items-center gap-2 text-sm text-stone-500">
+            <div className="flex items-start gap-2 text-sm text-stone-500 text-left">
               {/* « 100 % sécurisé » ne veut rien dire et ne s'appuie sur
-                  aucun audit ; on annonce ce qui est vérifiable dans le code. */}
-              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Gratuit • Sans inscription • Données supprimées à
-              l'expiration
+                  aucun audit ; on annonce ce qui est vérifiable dans le code.
+                  `shrink-0` + `mt-0.5` : l'icône se retrouvait orpheline à
+                  gauche du texte replié sur trois lignes. */}
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>Gratuit • Sans inscription • Données supprimées à l'expiration</span>
             </div>
           </div>
           
@@ -300,12 +353,12 @@ export default function Home() {
           <div className="flex items-center gap-6 text-xs">
             <button
               onClick={() => setLocation("/mentions-legales")}
-              className="hover:text-white transition-colors">
+              className="inline-flex items-center min-h-11 px-2 hover:text-white transition-colors">
               Mentions légales
             </button>
             <button
               onClick={() => setLocation("/confidentialite")}
-              className="hover:text-white transition-colors">
+              className="inline-flex items-center min-h-11 px-2 hover:text-white transition-colors">
               Confidentialité
             </button>
           </div>

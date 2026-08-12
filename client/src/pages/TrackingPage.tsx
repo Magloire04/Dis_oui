@@ -58,7 +58,10 @@ export default function TrackingPage() {
             <span className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
             <BrandMark size={21} decorative />
           </span>
-            <span className="font-display font-bold text-ink-900">Tableau de suivi Dis oui</span>
+            <span className="font-display font-bold text-ink-900 whitespace-nowrap">
+              <span className="sm:hidden">Suivi</span>
+              <span className="hidden sm:inline">Tableau de suivi Dis oui</span>
+            </span>
           </div>
         </div>
       </header>
