@@ -1,27 +1,14 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 
 /**
  * Mentions légales.
  *
- * Les informations d'identité de l'éditeur et de l'hébergeur sont obligatoires
- * (article 6-III de la LCEN) et ne peuvent pas être devinées : elles sont
- * laissées en champs à compléter, signalés visuellement pour ne pas être
- * oubliés à la mise en ligne.
+ * L'identité de l'éditeur y est obligatoire. Le bloc « hébergeur » reste à
+ * ajouter une fois l'hébergement choisi.
  */
-
-const A_COMPLETER = "[à compléter]";
-
-function AChamp({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-mono text-xs">
-      {children}
-    </span>
-  );
-}
-
 export default function MentionsLegales() {
   const [, setLocation] = useLocation();
 
@@ -42,22 +29,12 @@ export default function MentionsLegales() {
       <main className="max-w-3xl mx-auto px-6 py-12 space-y-10 text-stone-700">
         <h1 className="text-3xl font-extrabold text-stone-900">Mentions légales</h1>
 
-        <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <p>
-            Les champs surlignés restent à renseigner avant toute mise en ligne publique : ces
-            informations sont légalement obligatoires et ne peuvent être fournies que par l'éditeur.
-            Le bloc « hébergeur » ne pourra l'être qu'une fois l'hébergement choisi.
-          </p>
-        </div>
-
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-stone-900">Éditeur du site</h2>
           <ul className="text-sm space-y-2">
             <li>Nom / raison sociale : <strong>ByTechnum</strong></li>
-            <li>Statut juridique : <AChamp>{A_COMPLETER}</AChamp></li>
             <li>
-              Adresse : Porto-Novo, Bénin — <AChamp>adresse postale complète {A_COMPLETER}</AChamp>
+              Adresse : Porto-Novo, Bénin
             </li>
             <li>
               Adresse e-mail de contact :{" "}
@@ -72,16 +49,6 @@ export default function MentionsLegales() {
               </a>
             </li>
             <li>Directeur de la publication : <strong>Elisée Magloire ATONDE</strong></li>
-            <li>Identifiants RCCM / IFU : <AChamp>{A_COMPLETER}</AChamp></li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-xl font-bold text-stone-900">Hébergeur</h2>
-          <ul className="text-sm space-y-2">
-            <li>Nom : <AChamp>{A_COMPLETER}</AChamp></li>
-            <li>Adresse : <AChamp>{A_COMPLETER}</AChamp></li>
-            <li>Téléphone : <AChamp>{A_COMPLETER}</AChamp></li>
           </ul>
         </section>
 

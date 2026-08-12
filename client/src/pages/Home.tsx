@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { THEMES } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import type { ThemeId } from "@shared/invitationConfig";
-import { Sparkles, ArrowRight, ShieldCheck, HelpCircle } from "lucide-react";
+import { ArrowRight, ShieldCheck, HelpCircle } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 
 export default function Home() {
@@ -45,10 +45,6 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden px-6 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-100/80 border border-brand-200 text-brand-800 text-xs font-semibold tracking-wide uppercase">
-            {/* « animée 3D » retiré : il n'y a aucune 3D dans le projet. */}
-            <Sparkles className="w-3.5 h-3.5" /> Expérience interactive & animée
-          </div>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.1] text-stone-900">
             {/* Le dégradé virait vers l'orange, absent de la charte ByTechnum. */}
             Transformez votre demande de rendez-vous en{" "}
@@ -268,7 +264,7 @@ export default function Home() {
                 <HelpCircle className="w-5 h-5 text-brand-600" /> Combien de temps le lien reste-t-il actif ?
               </h3>
               <p className="text-sm text-stone-600">
-                Vous pouvez choisir une durée de vie de 7, 30 ou 90 jours lors de la création. Passé ce délai, l'invitation est automatiquement purgée (RGPD).
+                Vous pouvez choisir une durée de vie de 7, 30 ou 90 jours lors de la création. Passé ce délai, l'invitation est automatiquement purgée (APDP).
               </p>
             </div>
 
@@ -277,7 +273,7 @@ export default function Home() {
                 <HelpCircle className="w-5 h-5 text-brand-600" /> Le destinataire saura-t-il que c'est un site ?
               </h3>
               <p className="text-sm text-stone-600">
-                Les aperçus de partage affichent un titre neutre (« Quelqu'un t'a envoyé quelque chose 👀 ») pour préserver la surprise jusqu'à l'ouverture.
+                Les aperçus de partage affichent un titre neutre (« Quelqu'un t'a envoyé quelque chose ») pour préserver la surprise jusqu'à l'ouverture.
               </p>
             </div>
           </div>
