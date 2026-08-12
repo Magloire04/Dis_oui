@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { THEMES, ThemeConfig } from "@/lib/themes";
+import { THEMES } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
+import type { ThemeId } from "@shared/invitationConfig";
 import { 
   Heart, 
   Sparkles, 
@@ -22,8 +23,8 @@ import {
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const [selectedThemeKey, setSelectedThemeKey] = useState<string>("blush");
-  const currentTheme = THEMES[selectedThemeKey] || THEMES.blush;
+  const [selectedThemeKey, setSelectedThemeKey] = useState<ThemeId>("blush");
+  const currentTheme = THEMES[selectedThemeKey];
 
   const { data: stats } = trpc.invitations.stats.useQuery();
 

@@ -1,18 +1,44 @@
 import { z } from "zod";
-import { publicProcedure, router } from "./_core/trpc";
-import { 
-  hashIp, 
-  checkRateLimit, 
-  createInvitationRecord, 
-  getInvitationBySlug, 
-  getInvitationByToken, 
-  markInvitationOpened, 
-  getResponsesForInvitation, 
-  createResponseRecord, 
-  getInvitationStats 
-} from "./invitationsDb";
-import { sendCreatorNotification } from "./emailService";
+import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
+import { publicProcedure, router } from "./_core/trpc";
+import {
+  hashIp,
+  checkRateLimit,
+  createInvitationRecord,
+  getInvitationBySlug,
+  getInvitationByToken,
+  markInvitationOpened,
+  getResponsesForInvitation,
+  createResponseRecord,
+  getInvitationStats,
+  RATE_LIMITS,
+} from "./invitationsDb";
+import { findForbiddenTerm } from "./contentFilter";
+import { sendCreatorNotification } from "./emailService";
+import {
+  invitationAnswerSchema,
+  invitationConfigSchema,
+  LINK_DURATIONS,
+  userAuthoredText,
+  type InvitationConfig,
+} from "@shared/invitationConfig";
+
+const SLUG_LENGTH = 7;
+const CREATOR_TOKEN_LENGTH = 32;
+
+function clientIpOf(req: { headers: Record<string, unknown>; socket?: { remoteAddress?: string } }): string {
+  // `x-forwarded-for` peut contenir une liste « client, proxy1, proxy2 ».
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.length > 0) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.socket?.remoteAddress ?? "127.0.0.1";
+}
+
+function isExpired(expiresAt: Date | string): boolean {
+  return new Date() > new Date(expiresAt);
+}
 
 export const invitationsRouter = router({
   stats: publicProcedure.query(async () => {
@@ -20,40 +46,44 @@ export const invitationsRouter = router({
   }),
 
   create: publicProcedure
-    .input(z.object({
-      creatorEmail: z.string().email(),
-      config: z.any(),
-      expiresDays: z.number().default(30),
-      allowMultiple: z.boolean().default(false),
-    }))
+    .input(
+      z.object({
+        creatorEmail: z.email().max(320),
+        config: invitationConfigSchema,
+        expiresDays: z
+          .number()
+          .refine((n): n is (typeof LINK_DURATIONS)[number] => (LINK_DURATIONS as readonly number[]).includes(n), {
+            message: `La durée de validité doit valoir ${LINK_DURATIONS.join(", ")} jours.`,
+          })
+          .default(30),
+        allowMultiple: z.boolean().default(false),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
-      const clientIp = (ctx.req.headers["x-forwarded-for"] as string) || ctx.req.socket?.remoteAddress || "127.0.0.1";
-      const ipHash = hashIp(clientIp);
+      const ipHash = hashIp(clientIpOf(ctx.req));
 
       const allowed = await checkRateLimit(ipHash, "create_invitation");
       if (!allowed) {
-        throw new Error("Trop d'invitations créées depuis cette adresse. Veuillez réessayer plus tard (limite : 3 par heure).");
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Trop d'invitations créées depuis cette adresse. Veuillez réessayer plus tard (limite : ${RATE_LIMITS.perHour} par heure, ${RATE_LIMITS.perDay} par jour).`,
+        });
       }
 
-      // Content filtering check on free text
-      const freeText = JSON.stringify(input.config);
-      const forbiddenWords = ["violation", "harcèlement", "haine", "suicide"];
-      for (const word of forbiddenWords) {
-        if (freeText.toLowerCase().includes(word)) {
-          throw new Error("Le contenu de l'invitation contient des termes non autorisés par notre politique de modération.");
-        }
+      const forbidden = findForbiddenTerm(userAuthoredText(input.config));
+      if (forbidden) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Le terme « ${forbidden} » n'est pas autorisé par notre politique de modération.`,
+        });
       }
-
-      const slug = nanoid(7);
-      const creatorToken = nanoid(32);
-      const expiresAt = new Date(Date.now() + input.expiresDays * 24 * 60 * 60 * 1000);
 
       const invitation = await createInvitationRecord({
-        slug,
+        slug: nanoid(SLUG_LENGTH),
         creatorEmail: input.creatorEmail,
-        creatorToken,
+        creatorToken: nanoid(CREATOR_TOKEN_LENGTH),
         config: input.config,
-        expiresAt,
+        expiresAt: new Date(Date.now() + input.expiresDays * 24 * 60 * 60 * 1000),
         allowMultiple: input.allowMultiple,
         ipHash,
       });
@@ -67,87 +97,85 @@ export const invitationsRouter = router({
     }),
 
   getBySlug: publicProcedure
-    .input(z.object({ slug: z.string() }))
+    .input(z.object({ slug: z.string().min(1).max(12) }))
     .query(async ({ input }) => {
       const invitation = await getInvitationBySlug(input.slug);
       if (!invitation) {
-        throw new Error("Cette invitation n'existe plus ou a expiré.");
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Cette invitation n'existe plus ou a expiré.",
+        });
       }
 
-      if (new Date() > new Date(invitation.expiresAt)) {
-        throw new Error("Cette invitation a expiré.");
+      if (isExpired(invitation.expiresAt)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cette invitation a expiré." });
       }
 
-      // Mark as opened if first time
       await markInvitationOpened(input.slug);
 
-      // Check if already responded and allowMultiple is false
       const responses = await getResponsesForInvitation(invitation.id);
-      if (responses.length > 0 && !invitation.allowMultiple) {
-        const lastResp = responses[responses.length - 1] as any;
-        return {
-          ...invitation,
-          alreadyResponded: true,
-          response: lastResp?.answer,
-        };
-      }
+      const alreadyResponded = responses.length > 0 && !invitation.allowMultiple;
 
       return {
         ...invitation,
-        alreadyResponded: false,
+        alreadyResponded,
+        response: alreadyResponded ? responses[responses.length - 1].answer : undefined,
       };
     }),
 
   respond: publicProcedure
-    .input(z.object({
-      slug: z.string(),
-      answer: z.any(), // { day, time, menu, venue, customNote, refusCount }
-    }))
+    .input(
+      z.object({
+        slug: z.string().min(1).max(12),
+        answer: invitationAnswerSchema,
+      })
+    )
     .mutation(async ({ input }) => {
       const invitation = await getInvitationBySlug(input.slug);
       if (!invitation) {
-        throw new Error("Invitation introuvable.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invitation introuvable." });
+      }
+
+      // Absent de l'implémentation précédente : une invitation expirée pouvait
+      // encore recevoir une réponse et déclencher un e-mail.
+      if (isExpired(invitation.expiresAt)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cette invitation a expiré." });
       }
 
       const existingResponses = await getResponsesForInvitation(invitation.id);
       if (existingResponses.length > 0 && !invitation.allowMultiple) {
-        throw new Error("Une réponse a déjà été enregistrée pour cette invitation.");
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Une réponse a déjà été enregistrée pour cette invitation.",
+        });
       }
 
       await createResponseRecord(invitation.id, input.answer);
 
-      const config = invitation.config as any;
+      const config = invitation.config as InvitationConfig;
       await sendCreatorNotification({
         toEmail: invitation.creatorEmail,
-        recipientName: config.recipientName || "Ton invité(e)",
-        senderName: config.senderName || "Ton admirateur(trice)",
-        answerDetails: {
-          day: input.answer.day || "Date convenue",
-          time: input.answer.time || "Heure convenue",
-          menu: input.answer.menu || "Menu choisi",
-          venue: input.answer.venue || "Non spécifié",
-          customNote: input.answer.customNote || "",
-        },
+        recipientName: config.recipientName,
+        senderName: config.senderName,
+        answerDetails: input.answer,
         trackingUrl: `/track/${invitation.creatorToken}`,
-        theme: config.theme || "blush",
+        theme: config.themeKey,
       });
 
       return { success: true };
     }),
 
   getByToken: publicProcedure
-    .input(z.object({ token: z.string() }))
+    .input(z.object({ token: z.string().min(1).max(64) }))
     .query(async ({ input }) => {
       const invitation = await getInvitationByToken(input.token);
       if (!invitation) {
-        throw new Error("Jeton de suivi invalide.");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Jeton de suivi invalide." });
       }
-
-      const responses = await getResponsesForInvitation(invitation.id);
 
       return {
         invitation,
-        responses,
+        responses: await getResponsesForInvitation(invitation.id),
       };
     }),
 });

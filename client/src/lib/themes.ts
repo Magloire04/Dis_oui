@@ -1,5 +1,7 @@
+import type { ThemeId, Tone } from "@shared/invitationConfig";
+
 export interface ThemeConfig {
-  id: string;
+  id: ThemeId;
   name: string;
   tagline: string;
   bgGradient: string;
@@ -8,10 +10,12 @@ export interface ThemeConfig {
   accentColor: string;
   buttonBg: string;
   particleColor: string;
-  sceneType: 'blush' | 'midnight' | 'citrus' | 'forest' | 'sepia' | 'neon';
+  sceneType: ThemeId;
 }
 
-export const THEMES: Record<string, ThemeConfig> = {
+// `Record<ThemeId, …>` fait échouer la compilation si un thème du schéma
+// partagé n'a pas d'implémentation visuelle ici, et inversement.
+export const THEMES: Record<ThemeId, ThemeConfig> = {
   blush: {
     id: "blush",
     name: "Blush",
@@ -86,6 +90,19 @@ export const THEMES: Record<string, ThemeConfig> = {
   },
 };
 
+/**
+ * Résout un identifiant de thème venant de la base : la colonne `config` est
+ * un JSON libre, une invitation créée avant un renommage de thème peut donc
+ * porter une valeur inconnue. On retombe sur « blush » plutôt que de rendre
+ * une page cassée.
+ */
+export function resolveTheme(themeKey: unknown): ThemeConfig {
+  if (typeof themeKey === "string" && themeKey in THEMES) {
+    return THEMES[themeKey as ThemeId];
+  }
+  return THEMES.blush;
+}
+
 export const MENU_OPTIONS_PRESETS = [
   { id: "sushi", emoji: "🍣", label: "Bar à sushis & makis fondants" },
   { id: "italien", emoji: "🍝", label: "Trattoria italienne secrète" },
@@ -98,7 +115,7 @@ export const MENU_OPTIONS_PRESETS = [
   { id: "dessert", emoji: "🍨", label: "Bar à desserts & douceurs" },
 ];
 
-export const TONE_PRESETS: Record<string, { question: string; teases: string[] }> = {
+export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> = {
   doux: {
     question: "Tu veux passer un moment doux avec moi ?",
     teases: [

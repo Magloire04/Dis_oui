@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { THEMES, MENU_OPTIONS_PRESETS } from "@/lib/themes";
+import { resolveTheme, MENU_OPTIONS_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -60,7 +60,7 @@ export default function RecipientFunnel() {
   }
 
   const config = invitation.config as any;
-  const theme = THEMES[config.themeKey] || THEMES.blush;
+  const theme = resolveTheme(config.themeKey);
 
   // Handle fleeing "No" button
   const handleNoInteraction = (e: any) => {

@@ -6,6 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { THEMES, MENU_OPTIONS_PRESETS, TONE_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
+import {
+  invitationConfigSchema,
+  type MotionIntensity,
+  type NoButtonBehavior,
+  type Relation,
+  type ThemeId,
+  type Tone,
+} from "@shared/invitationConfig";
 import { 
   Heart, 
   ArrowLeft, 
@@ -24,6 +32,39 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+// Étape où corriger chaque champ, pour renvoyer l'utilisateur au bon endroit
+// plutôt que d'afficher une erreur sans issue.
+const FIELD_STEPS: Record<string, number> = {
+  recipientName: 1,
+  senderName: 1,
+  relation: 1,
+  tone: 1,
+  question: 2,
+  subtitle: 2,
+  emoji: 2,
+  noButtonBehavior: 2,
+  maxRefusals: 2,
+  teases: 2,
+  selectedDates: 3,
+  customTimeNote: 3,
+  selectedMenuOptions: 4,
+  themeKey: 5,
+  finalMessage: 5,
+};
+
+// Zod émet ses messages en anglais ; l'interface est entièrement en français.
+const FIELD_MESSAGES: Record<string, string> = {
+  recipientName: "Le prénom du destinataire est obligatoire (40 caractères maximum).",
+  senderName: "Votre prénom est obligatoire (40 caractères maximum).",
+  question: "La question est obligatoire (80 caractères maximum).",
+  subtitle: "Le sous-titre ne doit pas dépasser 120 caractères.",
+  teases: "Indiquez au moins une phrase de taquinerie.",
+  selectedDates: "Proposez au moins un créneau.",
+  customTimeNote: "Le libellé horaire ne doit pas dépasser 80 caractères.",
+  selectedMenuOptions: "Sélectionnez au moins une proposition de menu.",
+  finalMessage: "Le message final ne doit pas dépasser 280 caractères.",
+};
+
 export default function Editor() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1); // 1 to 6
@@ -31,13 +72,13 @@ export default function Editor() {
   // Form State
   const [recipientName, setRecipientName] = useState("");
   const [senderName, setSenderName] = useState("");
-  const [relation, setRelation] = useState<string>("crush");
-  const [tone, setTone] = useState<string>("doux");
+  const [relation, setRelation] = useState<Relation>("crush");
+  const [tone, setTone] = useState<Tone>("doux");
 
   const [question, setQuestion] = useState("Tu veux sortir avec moi ?");
   const [subtitle, setSubtitle] = useState("J'ai une surprise pour toi...");
   const [emoji, setEmoji] = useState("💌");
-  const [noButtonBehavior, setNoButtonBehavior] = useState<string>("fuyant");
+  const [noButtonBehavior, setNoButtonBehavior] = useState<NoButtonBehavior>("fuyant");
   const [maxRefusals, setMaxRefusals] = useState<number>(12);
   const [teases, setTeases] = useState<string[]>(TONE_PRESETS.doux.teases);
 
@@ -55,9 +96,9 @@ export default function Editor() {
   const [includeVenue, setIncludeVenue] = useState(true);
 
   // Art Direction & Theme
-  const [themeKey, setThemeKey] = useState("blush");
+  const [themeKey, setThemeKey] = useState<ThemeId>("blush");
   const [enableAnimation, setEnableAnimation] = useState(true);
-  const [motionIntensity, setMotionIntensity] = useState("normal");
+  const [motionIntensity, setMotionIntensity] = useState<MotionIntensity>("normal");
   const [finalMessage, setFinalMessage] = useState("J'ai hâte de te voir ! Prépare ton plus beau sourire.");
 
   // Delivery
@@ -93,12 +134,10 @@ export default function Editor() {
   }, [recipientName, senderName, relation, tone, question, themeKey, creatorEmail]);
 
   // Update teases when tone changes
-  const handleToneChange = (newTone: string) => {
+  const handleToneChange = (newTone: Tone) => {
     setTone(newTone);
-    if (TONE_PRESETS[newTone]) {
-      setQuestion(TONE_PRESETS[newTone].question);
-      setTeases(TONE_PRESETS[newTone].teases);
-    }
+    setQuestion(TONE_PRESETS[newTone].question);
+    setTeases(TONE_PRESETS[newTone].teases);
   };
 
   const createMutation = trpc.invitations.create.useMutation({
@@ -112,36 +151,51 @@ export default function Editor() {
   });
 
   const handleGenerate = () => {
-    if (!creatorEmail || !recipientName || !senderName) {
-      toast.error("Veuillez renseigner les prénoms et votre e-mail de réception.");
+    if (!creatorEmail.trim()) {
+      toast.error("Veuillez renseigner votre e-mail de réception.");
+      return;
+    }
+
+    // Même schéma que celui appliqué par l'API : les erreurs sont détectées
+    // ici plutôt que renvoyées par le serveur après un aller-retour.
+    const parsed = invitationConfigSchema.safeParse({
+      recipientName,
+      senderName,
+      relation,
+      tone,
+      question,
+      subtitle,
+      emoji,
+      noButtonBehavior,
+      maxRefusals,
+      // Le textarea de taquineries produit une ligne vide à chaque retour
+      // chariot ; elles ne doivent pas partir en base.
+      teases: teases.map(t => t.trim()).filter(Boolean),
+      selectedDates: selectedDates.map(d => d.trim()).filter(Boolean),
+      customTimeNote,
+      selectedMenuOptions,
+      includeSurprise,
+      includeVenue,
+      themeKey,
+      enableAnimation,
+      motionIntensity,
+      finalMessage,
+    });
+
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const field = String(issue.path[0] ?? "");
+      const step = FIELD_STEPS[field];
+      if (step) setStep(step);
+      toast.error(FIELD_MESSAGES[field] ?? issue.message);
       return;
     }
 
     createMutation.mutate({
-      creatorEmail,
+      creatorEmail: creatorEmail.trim(),
       allowMultiple,
       expiresDays: linkDuration,
-      config: {
-        recipientName,
-        senderName,
-        relation,
-        tone,
-        question,
-        subtitle,
-        emoji,
-        noButtonBehavior,
-        maxRefusals,
-        teases,
-        selectedDates,
-        customTimeNote,
-        selectedMenuOptions,
-        includeSurprise,
-        includeVenue,
-        themeKey,
-        enableAnimation,
-        motionIntensity,
-        finalMessage,
-      }
+      config: parsed.data,
     });
   };
 
@@ -309,12 +363,12 @@ export default function Editor() {
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-stone-700">Relation</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
+                    {([
                       { id: "crush", label: "Crush 💫" },
                       { id: "partenaire", label: "Partenaire ❤️" },
                       { id: "amie", label: "Ami·e 🥂" },
                       { id: "complique", label: "C'est compliqué 🤔" },
-                    ].map((rel) => (
+                    ] as const).map((rel) => (
                       <button
                         key={rel.id}
                         type="button"
@@ -334,12 +388,12 @@ export default function Editor() {
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-stone-700">Ton de l'invitation</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
+                    {([
                       { id: "doux", label: "Doux 🌸" },
                       { id: "drôle", label: "Drôle 🤪" },
                       { id: "audacieux", label: "Audacieux 🔥" },
                       { id: "romantique", label: "Romantique 🕯️" },
-                    ].map((t) => (
+                    ] as const).map((t) => (
                       <button
                         key={t.id}
                         type="button"
@@ -397,12 +451,12 @@ export default function Editor() {
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-stone-700">Comportement du bouton « Non »</label>
                   <div className="grid grid-cols-2 gap-3">
-                    {[
+                    {([
                       { id: "fuyant", label: "Fuyant (court partout) 🏃" },
                       { id: "retrecissant", label: "Rétrécit à chaque clic 📉" },
                       { id: "les_deux", label: "Les deux combinés ✨" },
                       { id: "desactive", label: "Désactivé d'office 🔒" },
-                    ].map((b) => (
+                    ] as const).map((b) => (
                       <button
                         key={b.id}
                         type="button"

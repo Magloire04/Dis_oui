@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { appRouter } from "./routers";
+import { getDb } from "./db";
+import { invitations } from "../drizzle/schema";
 import type { TrpcContext } from "./_core/context";
+import type { InvitationConfig } from "@shared/invitationConfig";
 
 function createTestContext(ip = "127.0.0.1"): TrpcContext {
   return {
@@ -20,11 +24,26 @@ function caller(ip?: string) {
   return appRouter.createCaller(createTestContext(ip));
 }
 
-const validConfig = {
+const validConfig: InvitationConfig = {
   recipientName: "Julie",
   senderName: "Thomas",
+  relation: "crush",
+  tone: "doux",
   question: "Un verre ce vendredi ?",
+  subtitle: "J'ai une surprise pour toi",
+  emoji: "💌",
+  noButtonBehavior: "fuyant",
+  maxRefusals: 12,
+  teases: ["Tu hésites encore ?"],
+  selectedDates: ["Ce vendredi à 19h30", "Ce samedi à 20h00"],
+  customTimeNote: "19h00 — en retard, mais avec classe",
+  selectedMenuOptions: ["sushi", "italien"],
+  includeSurprise: true,
+  includeVenue: true,
   themeKey: "blush",
+  enableAnimation: true,
+  motionIntensity: "normal",
+  finalMessage: "J'ai hâte de te voir !",
 };
 
 async function createInvitation(api: ReturnType<typeof caller>) {
@@ -126,6 +145,121 @@ describe("invitations.getByToken", () => {
     expect(invitation.slug).toBe(slug);
     expect(responses).toHaveLength(1);
     expect((responses[0].answer as any).menu).toBe("Sushi");
+  });
+});
+
+describe("validation de la configuration", () => {
+  it("refuse une config incomplète", async () => {
+    await expect(
+      caller().invitations.create({
+        creatorEmail: "createur@exemple.fr",
+        // @ts-expect-error - config volontairement tronquée
+        config: { recipientName: "Julie" },
+        expiresDays: 30,
+        allowMultiple: false,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("refuse un thème inconnu", async () => {
+    await expect(
+      caller().invitations.create({
+        creatorEmail: "createur@exemple.fr",
+        // @ts-expect-error - thème hors énumération
+        config: { ...validConfig, themeKey: "arc-en-ciel" },
+        expiresDays: 30,
+        allowMultiple: false,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("refuse une durée de validité hors 7 / 30 / 90 jours", async () => {
+    await expect(
+      caller().invitations.create({
+        creatorEmail: "createur@exemple.fr",
+        config: validConfig,
+        expiresDays: 3650,
+        allowMultiple: false,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("refuse une adresse e-mail invalide", async () => {
+    await expect(
+      caller().invitations.create({
+        creatorEmail: "pas-une-adresse",
+        config: validConfig,
+        expiresDays: 30,
+        allowMultiple: false,
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe("filtrage de contenu", () => {
+  it("laisse passer « prochaine », qui contient pourtant « haine »", async () => {
+    const api = caller();
+    await expect(
+      api.invitations.create({
+        creatorEmail: "createur@exemple.fr",
+        config: { ...validConfig, question: "Un verre la semaine prochaine ?" },
+        expiresDays: 30,
+        allowMultiple: false,
+      })
+    ).resolves.toHaveProperty("slug");
+  });
+
+  it("rejette un terme interdit isolé", async () => {
+    await expect(
+      caller().invitations.create({
+        creatorEmail: "createur@exemple.fr",
+        config: { ...validConfig, finalMessage: "Un message plein de haine" },
+        expiresDays: 30,
+        allowMultiple: false,
+      })
+    ).rejects.toThrow(/modération/);
+  });
+
+  it("n'inspecte que les champs rédigés par l'utilisateur", async () => {
+    // « sepia » ou « crush » ne doivent jamais déclencher la modération, et
+    // aucune clé technique du JSON ne doit être analysée.
+    await expect(
+      caller().invitations.create({
+        creatorEmail: "createur@exemple.fr",
+        config: { ...validConfig, themeKey: "sepia", relation: "crush" },
+        expiresDays: 30,
+        allowMultiple: false,
+      })
+    ).resolves.toHaveProperty("slug");
+  });
+});
+
+describe("expiration", () => {
+  async function expireInvitation(slug: string) {
+    const db = await getDb();
+    if (!db) throw new Error("base indisponible");
+    await db
+      .update(invitations)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(invitations.slug, slug));
+  }
+
+  it("refuse la consultation d'une invitation expirée", async () => {
+    const api = caller();
+    const { slug } = await createInvitation(api);
+    await expireInvitation(slug);
+
+    await expect(api.invitations.getBySlug({ slug })).rejects.toThrow(/expiré/);
+  });
+
+  it("refuse une réponse sur une invitation expirée", async () => {
+    const api = caller();
+    const { slug } = await createInvitation(api);
+    await expireInvitation(slug);
+
+    await expect(api.invitations.respond({ slug, answer: { day: "Ce vendredi" } })).rejects.toThrow(
+      /expiré/
+    );
   });
 });
 
