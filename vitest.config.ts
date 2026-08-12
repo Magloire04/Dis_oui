@@ -15,5 +15,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    setupFiles: ["./server/testSetup.ts"],
+    // Les tests partagent une base MySQL : les exécuter en parallèle ferait
+    // se tronquer les tables les uns des autres.
+    fileParallelism: false,
   },
 });

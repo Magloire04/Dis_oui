@@ -7,4 +7,11 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // Sel du hachage des IP. Les IP ne sont jamais stockées en clair : seul leur
+  // hash sert au rate limiting. Le sel doit rester secret, sinon le hash est
+  // trivialement inversible (l'espace des IPv4 se force brute en quelques minutes).
+  ipHashSalt: process.env.IP_HASH_SALT ?? "",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  resendFrom: process.env.RESEND_FROM ?? "Dis oui <onboarding@resend.dev>",
+  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3000",
 };

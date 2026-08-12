@@ -1,0 +1,2 @@
+ALTER TABLE `responses` ADD CONSTRAINT `responses_invitationId_invitations_id_fk` FOREIGN KEY (`invitationId`) REFERENCES `invitations`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX `rateLimits_lookup_idx` ON `rateLimits` (`ipHash`,`actionType`,`timestamp`);

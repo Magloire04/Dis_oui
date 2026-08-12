@@ -15,6 +15,20 @@
       "when": 1786507820337,
       "tag": "0001_parallel_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786519372204,
+      "tag": "0002_shocking_dark_phoenix",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786519500000,
+      "tag": "0003_innodb_and_response_fk",
+      "breakpoints": true
     }
   ]
 }

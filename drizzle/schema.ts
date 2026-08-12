@@ -1,4 +1,4 @@
-import { int, mysqlTable, text, timestamp, varchar, boolean, json, mysqlEnum } from "drizzle-orm/mysql-core";
+import { int, index, mysqlTable, text, timestamp, varchar, boolean, json, mysqlEnum } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -31,9 +31,13 @@ export const invitations = mysqlTable("invitations", {
 export type Invitation = typeof invitations.$inferSelect;
 export type InsertInvitation = typeof invitations.$inferInsert;
 
+// La cascade est ce qui rend la purge RGPD possible en une seule requête :
+// supprimer une invitation expirée emporte ses réponses.
 export const responses = mysqlTable("responses", {
   id: int("id").autoincrement().primaryKey(),
-  invitationId: int("invitationId").notNull(),
+  invitationId: int("invitationId")
+    .notNull()
+    .references(() => invitations.id, { onDelete: "cascade" }),
   answer: json("answer").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -41,12 +45,19 @@ export const responses = mysqlTable("responses", {
 export type ResponseRecord = typeof responses.$inferSelect;
 export type InsertResponseRecord = typeof responses.$inferInsert;
 
-export const rateLimits = mysqlTable("rateLimits", {
-  id: int("id").autoincrement().primaryKey(),
-  ipHash: varchar("ipHash", { length: 64 }).notNull(),
-  actionType: varchar("actionType", { length: 32 }).notNull(),
-  timestamp: timestamp("timestamp").notNull(),
-});
+// L'index composite couvre l'unique requête faite sur cette table : compter les
+// tentatives d'un couple (ipHash, actionType) sur une fenêtre glissante. Sans
+// lui, chaque création d'invitation déclenche un scan complet.
+export const rateLimits = mysqlTable(
+  "rateLimits",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ipHash: varchar("ipHash", { length: 64 }).notNull(),
+    actionType: varchar("actionType", { length: 32 }).notNull(),
+    timestamp: timestamp("timestamp").notNull(),
+  },
+  table => [index("rateLimits_lookup_idx").on(table.ipHash, table.actionType, table.timestamp)]
+);
 
 export type RateLimit = typeof rateLimits.$inferSelect;
 export type InsertRateLimit = typeof rateLimits.$inferInsert;
