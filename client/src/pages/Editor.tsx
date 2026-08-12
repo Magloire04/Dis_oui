@@ -1,0 +1,685 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { THEMES, MENU_OPTIONS_PRESETS, TONE_PRESETS } from "@/lib/themes";
+import { trpc } from "@/lib/trpc";
+import { 
+  Heart, 
+  ArrowLeft, 
+  ArrowRight, 
+  Check, 
+  Sparkles, 
+  Smile, 
+  Calendar, 
+  Utensils, 
+  Palette, 
+  Send,
+  RotateCcw,
+  Copy,
+  CheckCircle2,
+  QrCode
+} from "lucide-react";
+import { toast } from "sonner";
+
+export default function Editor() {
+  const [, setLocation] = useLocation();
+  const [step, setStep] = useState(1); // 1 to 6
+
+  // Form State
+  const [recipientName, setRecipientName] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [relation, setRelation] = useState<string>("crush");
+  const [tone, setTone] = useState<string>("doux");
+
+  const [question, setQuestion] = useState("Tu veux sortir avec moi ?");
+  const [subtitle, setSubtitle] = useState("J'ai une surprise pour toi...");
+  const [emoji, setEmoji] = useState("💌");
+  const [noButtonBehavior, setNoButtonBehavior] = useState<string>("fuyant");
+  const [maxRefusals, setMaxRefusals] = useState<number>(12);
+  const [teases, setTeases] = useState<string[]>(TONE_PRESETS.doux.teases);
+
+  // Time slots
+  const [selectedDates, setSelectedDates] = useState<string[]>([
+    "Ce vendredi à 19h30",
+    "Ce samedi à 20h00",
+    "Dimanche midi"
+  ]);
+  const [customTimeNote, setCustomTimeNote] = useState("19h00 — en retard, mais avec classe");
+
+  // Menu & Options
+  const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["sushi", "italien", "bistrot"]);
+  const [includeSurprise, setIncludeSurprise] = useState(true);
+  const [includeVenue, setIncludeVenue] = useState(true);
+
+  // Art Direction & Theme
+  const [themeKey, setThemeKey] = useState("blush");
+  const [enableAnimation, setEnableAnimation] = useState(true);
+  const [motionIntensity, setMotionIntensity] = useState("normal");
+  const [finalMessage, setFinalMessage] = useState("J'ai hâte de te voir ! Prépare ton plus beau sourire.");
+
+  // Delivery
+  const [creatorEmail, setCreatorEmail] = useState("");
+  const [linkDuration, setLinkDuration] = useState(30);
+  const [allowMultiple, setAllowMultiple] = useState(false);
+
+  // Result state after creation
+  const [createdResult, setCreatedResult] = useState<{ slug: string; creatorToken: string; trackingUrl: string; recipientUrl: string } | null>(null);
+
+  const currentTheme = THEMES[themeKey] || THEMES.blush;
+
+  // Auto load from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("dis_oui_draft");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.recipientName) setRecipientName(parsed.recipientName);
+        if (parsed.senderName) setSenderName(parsed.senderName);
+        if (parsed.creatorEmail) setCreatorEmail(parsed.creatorEmail);
+        if (parsed.question) setQuestion(parsed.question);
+        if (parsed.themeKey) setThemeKey(parsed.themeKey);
+      } catch (e) {}
+    }
+  }, []);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    localStorage.setItem("dis_oui_draft", JSON.stringify({
+      recipientName, senderName, relation, tone, question, themeKey, creatorEmail
+    }));
+  }, [recipientName, senderName, relation, tone, question, themeKey, creatorEmail]);
+
+  // Update teases when tone changes
+  const handleToneChange = (newTone: string) => {
+    setTone(newTone);
+    if (TONE_PRESETS[newTone]) {
+      setQuestion(TONE_PRESETS[newTone].question);
+      setTeases(TONE_PRESETS[newTone].teases);
+    }
+  };
+
+  const createMutation = trpc.invitations.create.useMutation({
+    onSuccess: (data) => {
+      setCreatedResult(data);
+      toast.success("Votre invitation a été générée avec succès !");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erreur lors de la création de l'invitation.");
+    }
+  });
+
+  const handleGenerate = () => {
+    if (!creatorEmail || !recipientName || !senderName) {
+      toast.error("Veuillez renseigner les prénoms et votre e-mail de réception.");
+      return;
+    }
+
+    createMutation.mutate({
+      creatorEmail,
+      allowMultiple,
+      expiresDays: linkDuration,
+      config: {
+        recipientName,
+        senderName,
+        relation,
+        tone,
+        question,
+        subtitle,
+        emoji,
+        noButtonBehavior,
+        maxRefusals,
+        teases,
+        selectedDates,
+        customTimeNote,
+        selectedMenuOptions,
+        includeSurprise,
+        includeVenue,
+        themeKey,
+        enableAnimation,
+        motionIntensity,
+        finalMessage,
+      }
+    });
+  };
+
+  if (createdResult) {
+    const fullRecipientUrl = `${window.location.origin}${createdResult.recipientUrl}`;
+    const fullTrackingUrl = `${window.location.origin}${createdResult.trackingUrl}`;
+
+    return (
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
+        <Card className="max-w-xl w-full p-8 rounded-3xl shadow-2xl space-y-6 text-center border-rose-100 bg-white">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner">
+            ✨
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-extrabold text-stone-900">Votre invitation est prête !</h1>
+            <p className="text-sm text-stone-600">
+              Partagez le lien ci-dessous avec <span className="font-bold text-stone-900">{recipientName}</span>. Suspense garanti !
+            </p>
+          </div>
+
+          <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-3 text-left">
+            <label className="text-xs font-semibold text-stone-500 uppercase">Lien unique pour {recipientName}</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                readOnly 
+                value={fullRecipientUrl} 
+                className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-sm font-mono text-stone-800"
+              />
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(fullRecipientUrl);
+                  toast.success("Lien copié dans le presse-papier !");
+                }}
+                className="bg-rose-600 hover:bg-rose-700 text-white shrink-0">
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button 
+              onClick={() => window.open(fullRecipientUrl, '_blank')}
+              variant="outline"
+              className="w-full rounded-xl py-3 border-stone-300">
+              Tester l'expérience destinataire
+            </Button>
+            <Button 
+              onClick={() => setLocation(createdResult.trackingUrl)}
+              className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-xl py-3">
+              Voir la page de suivi privée
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-stone-100 flex flex-col">
+      {/* Top Bar */}
+      <header className="bg-white border-b border-stone-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
+            <ArrowLeft className="w-5 h-5 text-stone-700" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center text-white">
+              <Heart className="w-4 h-4 fill-current" />
+            </div>
+            <span className="font-bold text-stone-900">Éditeur Dis oui</span>
+          </div>
+        </div>
+
+        {/* Step indicator */}
+        <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-stone-500">
+          <span>Étape {step} sur 6</span>
+          <div className="w-32 h-2 bg-stone-200 rounded-full overflow-hidden">
+            <div className="h-full bg-rose-600 transition-all duration-300" style={{ width: `${(step / 6) * 100}%` }}></div>
+          </div>
+        </div>
+
+        <div>
+          <Button 
+            onClick={() => {
+              localStorage.removeItem("dis_oui_draft");
+              window.location.reload();
+            }}
+            variant="ghost" 
+            size="sm" 
+            className="text-stone-500 hover:text-rose-600 gap-1">
+            <RotateCcw className="w-4 h-4" /> Réinitialiser
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Split Layout: Form (Left) & Live Preview (Right) */}
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 max-w-[1600px] w-full mx-auto">
+        
+        {/* Left Form Column */}
+        <div className="lg:col-span-7 p-6 md:p-10 flex flex-col justify-between bg-white overflow-y-auto">
+          <div className="max-w-xl mx-auto w-full space-y-8 pb-12">
+            
+            {/* Step navigation tabs */}
+            <div className="flex items-center justify-between border-b border-stone-200 pb-4 overflow-x-auto gap-2">
+              {[
+                { id: 1, label: "Identités", icon: Smile },
+                { id: 2, label: "Question", icon: Sparkles },
+                { id: 3, label: "Créneaux", icon: Calendar },
+                { id: 4, label: "Menu", icon: Utensils },
+                { id: 5, label: "Design", icon: Palette },
+                { id: 6, label: "Livraison", icon: Send },
+              ].map((s) => {
+                const Icon = s.icon;
+                const isActive = step === s.id;
+                const isPassed = step > s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setStep(s.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      isActive 
+                        ? "bg-rose-600 text-white shadow-md shadow-rose-600/20" 
+                        : isPassed 
+                        ? "bg-rose-50 text-rose-700" 
+                        : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* STEP 1: Identities & Tone */}
+            {step === 1 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">Qui invite qui ?</h2>
+                  <p className="text-sm text-stone-600">Définissez les prénoms et le ton général de votre invitation.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-stone-700">Prénom du destinataire *</label>
+                    <Input 
+                      value={recipientName} 
+                      onChange={(e) => setRecipientName(e.target.value)} 
+                      placeholder="ex: Julie" 
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-stone-700">Votre prénom (expéditeur) *</label>
+                    <Input 
+                      value={senderName} 
+                      onChange={(e) => setSenderName(e.target.value)} 
+                      placeholder="ex: Thomas" 
+                      className="rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Relation</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { id: "crush", label: "Crush 💫" },
+                      { id: "partenaire", label: "Partenaire ❤️" },
+                      { id: "amie", label: "Ami·e 🥂" },
+                      { id: "complique", label: "C'est compliqué 🤔" },
+                    ].map((rel) => (
+                      <button
+                        key={rel.id}
+                        type="button"
+                        onClick={() => setRelation(rel.id)}
+                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
+                          relation === rel.id 
+                            ? "border-rose-500 bg-rose-50 text-rose-800 shadow-sm" 
+                            : "border-stone-200 text-stone-700 hover:border-stone-300"
+                        }`}
+                      >
+                        {rel.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Ton de l'invitation</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { id: "doux", label: "Doux 🌸" },
+                      { id: "drôle", label: "Drôle 🤪" },
+                      { id: "audacieux", label: "Audacieux 🔥" },
+                      { id: "romantique", label: "Romantique 🕯️" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleToneChange(t.id)}
+                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
+                          tone === t.id 
+                            ? "border-rose-500 bg-rose-50 text-rose-800 shadow-sm" 
+                            : "border-stone-200 text-stone-700 hover:border-stone-300"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Question & Fleeing button */}
+            {step === 2 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">La question & taquineries</h2>
+                  <p className="text-sm text-stone-600">Personnalisez la question principale et le comportement du bouton « Non ».</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Texte de la question (80 car. max)</label>
+                  <Input 
+                    value={question} 
+                    onChange={(e) => setQuestion(e.target.value)} 
+                    maxLength={80}
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Emoji ou illustration principale</label>
+                  <div className="flex items-center gap-3">
+                    {["💌", "💖", "🌹", "🥂", "🍕", "✨", "🔥", "🍓", "☕"].map((em) => (
+                      <button
+                        key={em}
+                        type="button"
+                        onClick={() => setEmoji(em)}
+                        className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border transition-all ${
+                          emoji === em ? "border-rose-500 bg-rose-50 scale-110" : "border-stone-200 hover:bg-stone-50"
+                        }`}
+                      >
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Comportement du bouton « Non »</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: "fuyant", label: "Fuyant (court partout) 🏃" },
+                      { id: "retrecissant", label: "Rétrécit à chaque clic 📉" },
+                      { id: "les_deux", label: "Les deux combinés ✨" },
+                      { id: "desactive", label: "Désactivé d'office 🔒" },
+                    ].map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setNoButtonBehavior(b.id)}
+                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
+                          noButtonBehavior === b.id 
+                            ? "border-rose-500 bg-rose-50 text-rose-800" 
+                            : "border-stone-200 text-stone-700"
+                        }`}
+                      >
+                        {b.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Phrases de taquinerie (une par ligne)</label>
+                  <Textarea 
+                    value={teases.join("\n")}
+                    onChange={(e) => setTeases(e.target.value.split("\n"))}
+                    rows={4}
+                    className="rounded-xl text-xs font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Time slots */}
+            {step === 3 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">Les créneaux proposés</h2>
+                  <p className="text-sm text-stone-600">Proposez jusqu'à 3 moments clés pour votre rendez-vous.</p>
+                </div>
+
+                <div className="space-y-3">
+                  {selectedDates.map((dateStr, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input 
+                        value={dateStr}
+                        onChange={(e) => {
+                          const updated = [...selectedDates];
+                          updated[idx] = e.target.value;
+                          setSelectedDates(updated);
+                        }}
+                        className="rounded-xl"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setSelectedDates(selectedDates.filter((_, i) => i !== idx))}
+                        className="text-stone-400 hover:text-red-500">
+                        ✕
+                      </Button>
+                    </div>
+                  ))}
+                  {selectedDates.length < 5 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setSelectedDates([...selectedDates, "Nouveau créneau"])}
+                      className="w-full rounded-xl border-dashed">
+                      + Ajouter un créneau
+                    </Button>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Libellé humoristique des horaires</label>
+                  <Input 
+                    value={customTimeNote} 
+                    onChange={(e) => setCustomTimeNote(e.target.value)} 
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Menu & Venue */}
+            {step === 4 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">Le menu & les options</h2>
+                  <p className="text-sm text-stone-600">Sélectionnez les propositions culinaires et options de lieu.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {MENU_OPTIONS_PRESETS.map((opt) => {
+                    const isSelected = selectedMenuOptions.includes(opt.id);
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedMenuOptions(selectedMenuOptions.filter(id => id !== opt.id));
+                          } else {
+                            setSelectedMenuOptions([...selectedMenuOptions, opt.id]);
+                          }
+                        }}
+                        className={`cursor-pointer p-4 rounded-2xl border flex items-center gap-3 transition-all ${
+                          isSelected ? "border-rose-500 bg-rose-50/50 shadow-sm" : "border-stone-200 hover:border-stone-300"
+                        }`}
+                      >
+                        <span className="text-2xl">{opt.emoji}</span>
+                        <span className="text-sm font-medium text-stone-800">{opt.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={includeSurprise} 
+                      onChange={(e) => setIncludeSurprise(e.target.checked)}
+                      className="w-4 h-4 accent-rose-600 rounded"
+                    />
+                    <span className="text-sm text-stone-700 font-medium">Ajouter l'option « Surprends-moi » ✨</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={includeVenue} 
+                      onChange={(e) => setIncludeVenue(e.target.checked)}
+                      className="w-4 h-4 accent-rose-600 rounded"
+                    />
+                    <span className="text-sm text-stone-700 font-medium">Autoriser le destinataire à proposer un lieu 📍</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 5: Art Direction & Themes */}
+            {step === 5 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">Direction artistique & Thèmes</h2>
+                  <p className="text-sm text-stone-600">Choisissez l'ambiance visuelle et le message final du billet.</p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {Object.values(THEMES).map((th) => (
+                    <div
+                      key={th.id}
+                      onClick={() => setThemeKey(th.id)}
+                      className={`cursor-pointer p-4 rounded-2xl border transition-all text-center space-y-2 bg-gradient-to-br ${th.bgGradient} ${
+                        themeKey === th.id ? "ring-2 ring-rose-600 shadow-lg scale-102" : "border-stone-200 shadow-sm"
+                      }`}
+                    >
+                      <span className="text-2xl">{th.id === 'blush' ? '🌸' : th.id === 'midnight' ? '🌙' : th.id === 'citrus' ? '🍊' : th.id === 'forest' ? '🌲' : th.id === 'sepia' ? '📜' : '⚡'}</span>
+                      <h4 className="font-bold text-stone-900 text-xs">{th.name}</h4>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Message final personnalisé sur le billet</label>
+                  <Textarea 
+                    value={finalMessage} 
+                    onChange={(e) => setFinalMessage(e.target.value)}
+                    rows={3}
+                    className="rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 6: Delivery & Email */}
+            {step === 6 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">Livraison & Réception</h2>
+                  <p className="text-sm text-stone-600">Où devons-nous vous envoyer la réponse du destinataire ?</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Votre adresse e-mail (obligatoire) *</label>
+                  <Input 
+                    type="email"
+                    value={creatorEmail} 
+                    onChange={(e) => setCreatorEmail(e.target.value)} 
+                    placeholder="votre.email@exemple.com" 
+                    className="rounded-xl"
+                  />
+                  <p className="text-[11px] text-stone-500">C'est ici que vous recevrez la réponse détaillée avec le fichier `.ics`.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-stone-700">Durée de validité du lien</label>
+                  <select 
+                    value={linkDuration}
+                    onChange={(e) => setLinkDuration(Number(e.target.value))}
+                    className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-800"
+                  >
+                    <option value={7}>7 jours</option>
+                    <option value={30}>30 jours (recommandé)</option>
+                    <option value={90}>90 jours</option>
+                  </select>
+                </div>
+
+                <div className="pt-4">
+                  <Button 
+                    onClick={handleGenerate}
+                    disabled={createMutation.isPending}
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-xl py-4 font-bold text-base shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2">
+                    {createMutation.isPending ? "Génération en cours..." : "Générer mon lien magique ✨"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom navigation buttons */}
+            <div className="flex items-center justify-between pt-8 border-t border-stone-200">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep(Math.max(1, step - 1))}
+                disabled={step === 1}
+                className="rounded-xl px-6">
+                Précédent
+              </Button>
+              {step < 6 && (
+                <Button 
+                  onClick={() => setStep(Math.min(6, step + 1))}
+                  className="bg-stone-900 hover:bg-stone-800 text-white rounded-xl px-6">
+                  Suivant <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+            </div>
+
+          </div>
+        </div>
+
+        {/* Right Live Preview Column */}
+        <div className="lg:col-span-5 bg-stone-900 p-8 flex items-center justify-center relative overflow-hidden hidden lg:flex">
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]"></div>
+          
+          <div className="relative w-full max-w-sm aspect-[9/16] rounded-[48px] bg-stone-950 p-4 shadow-2xl shadow-black/80 border-4 border-stone-800">
+            <div className="absolute top-7 left-1/2 -translate-x-1/2 w-36 h-4 bg-stone-900 rounded-full z-20"></div>
+            
+            <div className={`w-full h-full rounded-[38px] overflow-hidden bg-gradient-to-br ${currentTheme.bgGradient} flex flex-col justify-between p-6 text-center relative shadow-inner`}>
+              
+              <div className="z-10 pt-6">
+                <span className="inline-block px-3 py-1 rounded-full bg-white/70 backdrop-blur text-xs font-semibold text-stone-800 shadow-sm">
+                  Aperçu live • {currentTheme.name}
+                </span>
+              </div>
+
+              <div className="z-10 space-y-4 my-auto">
+                <div className="w-20 h-20 mx-auto rounded-3xl bg-white shadow-xl flex items-center justify-center text-3xl animate-pulse">
+                  {emoji}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-widest text-stone-500 font-bold">
+                    {recipientName || "Destinataire"} de la part de {senderName || "Toi"}
+                  </p>
+                  <h3 className="text-xl font-extrabold text-stone-900 leading-snug">
+                    {question}
+                  </h3>
+                  <p className="text-xs text-stone-600">{subtitle}</p>
+                </div>
+              </div>
+
+              <div className="z-10 w-full space-y-2 pb-4">
+                <div className="w-full py-3 rounded-2xl bg-rose-600 text-white font-bold text-sm shadow-lg shadow-rose-600/30">
+                  Oui, avec immense plaisir ✨
+                </div>
+                <div className="w-full py-2.5 rounded-2xl bg-white/80 backdrop-blur text-stone-700 font-semibold text-xs border border-stone-200">
+                  Non (refuser)
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
+}

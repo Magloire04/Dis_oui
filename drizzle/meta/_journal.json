@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786507508560,
+      "tag": "0000_productive_darwin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786507820337,
+      "tag": "0001_parallel_ares",
+      "breakpoints": true
+    }
+  ]
+}
