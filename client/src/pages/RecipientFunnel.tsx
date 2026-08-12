@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useState } from "react";
+import { useRoute } from "wouter";
 import { resolveTheme, MENU_OPTIONS_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import { normalizeDateSlots, slotStartsAt, type DateSlot } from "@shared/invitationConfig";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Sparkles, Calendar, Utensils, CheckCircle2, Download, Share2, MapPin } from "lucide-react";
+import { Calendar, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RecipientFunnel() {
@@ -83,18 +83,46 @@ export default function RecipientFunnel() {
       })
     : null;
 
-  // Handle fleeing "No" button
-  const handleNoInteraction = (e: any) => {
+  // `includeSurprise` était enregistré par l'éditeur mais n'apparaissait nulle
+  // part dans le funnel : l'option n'a jamais été proposée au destinataire.
+  const menuChoices: Array<{ id: string; emoji: string; label: string }> = [
+    ...((config.selectedMenuOptions as string[] | undefined) ?? []).map(optId => {
+      const preset = MENU_OPTIONS_PRESETS.find(m => m.id === optId);
+      return { id: optId, emoji: preset?.emoji ?? "🍽️", label: preset?.label ?? optId };
+    }),
+    ...(config.includeSurprise
+      ? [{ id: "surprise", emoji: "✨", label: "Surprends-moi" }]
+      : []),
+  ];
+
+  const maxRefusals: number = config.maxRefusals ?? 12;
+  const behavior: string = config.noButtonBehavior ?? "fuyant";
+  const fleeing = behavior === "fuyant" || behavior === "les_deux";
+  const shrinking = behavior === "retrecissant" || behavior === "les_deux";
+  // Passé le quota, le bouton cessait simplement de réagir : aucune issue, et
+  // rien qui l'explique. Il devient explicitement hors d'usage.
+  const noButtonExhausted = refusCount >= maxRefusals;
+
+  const teaseMessage: string | null =
+    refusCount > 0
+      ? config.teases?.[Math.min(refusCount - 1, (config.teases?.length ?? 1) - 1)] ??
+        "Tu hésites encore ?"
+      : null;
+
+  const handleNoInteraction = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    const maxTries = config.maxRefusals || 12;
-    if (refusCount >= maxTries) return;
+    if (noButtonExhausted) return;
 
     setRefusCount(prev => prev + 1);
-    
-    // Calculate random offset
-    const randomX = (Math.random() - 0.5) * 240;
-    const randomY = (Math.random() - 0.5) * 180;
-    setNoBtnPos({ x: randomX, y: randomY });
+
+    if (fleeing) {
+      // Amplitude volontairement bornée : à ±120 px, le bouton sortait de la
+      // carte et pouvait devenir inatteignable sur un écran étroit. La fuite
+      // reste lisible tout en restant dans le cadre.
+      const randomX = (Math.random() - 0.5) * 130;
+      const randomY = (Math.random() - 0.5) * 90;
+      setNoBtnPos({ x: randomX, y: randomY });
+    }
   };
 
   const handleYes = () => {
@@ -131,30 +159,55 @@ export default function RecipientFunnel() {
     });
   };
 
+  // Une invitation déjà répondue laissait le visiteur refaire tout le parcours
+  // pour se heurter à un conflit au moment de valider.
+  if (invitation.alreadyResponded && screen !== 5) {
+    const previous = invitation.response as { day?: string; menu?: string } | undefined;
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center p-6 font-sans`}>
+        <Card className={`max-w-md w-full p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-4 animate-scaleUp`}>
+          <div className="text-4xl">🎉</div>
+          <h1 className="text-2xl font-extrabold">Réponse déjà envoyée</h1>
+          <p className={`text-sm ${theme.mutedText}`}>
+            Tu as déjà répondu à cette invitation. {config.senderName} a bien reçu ton message.
+          </p>
+          {previous?.day && (
+            <div className={`border rounded-2xl p-4 text-left space-y-1 text-xs ${theme.panelBg}`}>
+              <p><span className="font-bold">Créneau :</span> {previous.day}</p>
+              {previous.menu && <p><span className="font-bold">Menu :</span> {previous.menu}</p>}
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex flex-col items-center justify-center p-4 md:p-6 overflow-hidden relative font-sans select-none`}>
-      
+    <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex flex-col items-center justify-center p-4 md:p-6 overflow-hidden relative font-sans`}>
+
       {/* Background ambient particles / glow */}
       <div className="absolute inset-0 opacity-30 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
       <div className="w-full max-w-md relative z-10">
-        
+
         {/* SCREEN 0: Threshold Envelope */}
         {screen === 0 && (
-          <Card className="p-8 rounded-[36px] bg-white/90 backdrop-blur-xl shadow-2xl border-rose-200 text-center space-y-6 animate-scaleUp">
-            <div className="w-24 h-24 mx-auto rounded-full bg-rose-100 flex items-center justify-center text-4xl shadow-inner animate-bounce">
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-6 animate-scaleUp`}>
+            <div className={`w-24 h-24 mx-auto rounded-full ${theme.accentSoft} flex items-center justify-center text-4xl shadow-inner animate-heartbeat`}>
               {config.emoji || "💌"}
             </div>
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-widest text-stone-500 font-bold">Message secret</p>
-              <h1 className="text-2xl font-extrabold text-stone-900">
+              <p className={`text-xs uppercase tracking-widest font-bold ${theme.labelText}`}>Message secret</p>
+              <h1 className="text-2xl font-extrabold">
                 {config.recipientName}, quelqu'un t'a laissé un message...
               </h1>
-              <p className="text-xs text-stone-600">De la part de <span className="font-bold text-stone-800">{config.senderName}</span></p>
+              <p className={`text-xs ${theme.mutedText}`}>
+                De la part de <span className="font-bold">{config.senderName}</span>
+              </p>
             </div>
-            <Button 
+            <Button
               onClick={() => setScreen(1)}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl shadow-rose-600/30 transition-all hover:scale-105">
+              className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100`}>
               Ouvrir l'enveloppe 🔓
             </Button>
           </Card>
@@ -162,43 +215,58 @@ export default function RecipientFunnel() {
 
         {/* SCREEN 1: The Question */}
         {screen === 1 && (
-          <Card className="p-8 rounded-[36px] bg-white/90 backdrop-blur-xl shadow-2xl border-rose-200 text-center space-y-8 animate-fadeIn">
-            <div className="w-20 h-20 mx-auto rounded-3xl bg-rose-50 flex items-center justify-center text-4xl shadow-inner">
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-8 animate-fadeIn`}>
+            <div className={`w-20 h-20 mx-auto rounded-3xl ${theme.accentSoft} flex items-center justify-center text-4xl shadow-inner`}>
               {config.emoji || "💌"}
             </div>
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-widest text-rose-600 font-bold">Invitation exclusive</p>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-stone-900 leading-snug">
+              <p className={`text-xs uppercase tracking-widest font-bold ${theme.labelText}`}>Invitation exclusive</p>
+              <h2 className="text-2xl md:text-3xl font-extrabold leading-snug">
                 {config.question}
               </h2>
-              {refusCount > 0 && (
-                <p className="text-xs font-semibold text-rose-500 animate-pulse">
-                  {config.teases?.[Math.min(refusCount - 1, (config.teases?.length || 1) - 1)] || "Tu hésites encore ?"} ({refusCount} refus)
-                </p>
-              )}
+              {/* aria-live : les taquineries doivent être annoncées aux
+                  lecteurs d'écran, sans déplacer le focus. */}
+              <p className={`text-xs font-semibold min-h-4 ${theme.mutedText}`} aria-live="polite">
+                {teaseMessage && `${teaseMessage} (${refusCount} refus)`}
+              </p>
             </div>
 
             <div className="space-y-3 relative min-h-[140px] flex flex-col justify-center">
-              <Button 
+              <Button
                 onClick={handleYes}
-                className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl shadow-rose-600/30 transition-all hover:scale-105 z-10">
+                className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100 z-10`}>
                 Oui, avec immense plaisir ✨
               </Button>
 
-              {config.noButtonBehavior !== "desactive" && (
+              {behavior !== "desactive" && (
                 <button
-                  onMouseEnter={config.noButtonBehavior === 'fuyant' || config.noButtonBehavior === 'les_deux' ? handleNoInteraction : undefined}
-                  onTouchStart={config.noButtonBehavior === 'fuyant' || config.noButtonBehavior === 'les_deux' ? handleNoInteraction : undefined}
+                  type="button"
+                  disabled={noButtonExhausted}
+                  onMouseEnter={fleeing && !noButtonExhausted ? handleNoInteraction : undefined}
+                  onTouchStart={fleeing && !noButtonExhausted ? handleNoInteraction : undefined}
                   onClick={handleNoInteraction}
-                  style={noBtnPos ? { transform: `translate(${noBtnPos.x}px, ${noBtnPos.y}px)` } : {}}
-                  className={`w-full py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs border border-stone-200 transition-all ${
-                    config.noButtonBehavior === 'retrecissant' || config.noButtonBehavior === 'les_deux'
-                      ? `scale-${Math.max(40, 100 - refusCount * 10)}`
-                      : ''
-                  }`}
+                  style={{
+                    // Le rétrécissement passait par `scale-${...}`, une classe
+                    // Tailwind construite dynamiquement, donc jamais générée.
+                    transform: [
+                      noBtnPos ? `translate(${noBtnPos.x}px, ${noBtnPos.y}px)` : "",
+                      shrinking ? `scale(${Math.max(0.4, 1 - refusCount * 0.1)})` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" "),
+                  }}
+                  className={`w-full py-3 rounded-2xl border font-semibold text-xs transition-transform duration-200 disabled:opacity-40 disabled:cursor-not-allowed motion-reduce:transition-none ${theme.optionIdle}`}
                 >
-                  Non (refuser)
+                  {noButtonExhausted ? "Le bouton « Non » a rendu les armes 🏳️" : "Non (refuser)"}
                 </button>
+              )}
+
+              {noButtonExhausted && (
+                <p className={`text-[11px] ${theme.labelText}`}>
+                  Tu as essayé {refusCount} fois. Si c'est vraiment non, ferme simplement cette page —
+                  {" "}
+                  {config.senderName} ne recevra aucune réponse.
+                </p>
               )}
             </div>
           </Card>
@@ -206,19 +274,19 @@ export default function RecipientFunnel() {
 
         {/* SCREEN 2: Reaction (if tried to refuse) */}
         {screen === 2 && (
-          <Card className="p-8 rounded-[36px] bg-white/90 backdrop-blur-xl shadow-2xl border-rose-200 text-center space-y-6 animate-scaleUp">
-            <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl shadow-inner">
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-6 animate-scaleUp`}>
+            <div className={`w-20 h-20 mx-auto rounded-full ${theme.accentSoft} flex items-center justify-center text-3xl shadow-inner`}>
               🤭
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-extrabold text-stone-900">Nice try !</h2>
-              <p className="text-sm text-stone-600">
-                Tu as essayé de cliquer sur Non <span className="font-bold text-rose-600">{refusCount} fois</span>. Mais au fond, tu savais très bien que tu dirais Oui !
+              <h2 className="text-2xl font-extrabold">Nice try !</h2>
+              <p className={`text-sm ${theme.mutedText}`}>
+                Tu as essayé de cliquer sur Non <span className="font-bold">{refusCount} fois</span>. Mais au fond, tu savais très bien que tu dirais Oui !
               </p>
             </div>
-            <Button 
+            <Button
               onClick={() => setScreen(3)}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl">
+              className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl`}>
               Continuer vers les créneaux 📅
             </Button>
           </Card>
@@ -226,10 +294,10 @@ export default function RecipientFunnel() {
 
         {/* SCREEN 3: Date & Time slots */}
         {screen === 3 && (
-          <Card className="p-8 rounded-[36px] bg-white/90 backdrop-blur-xl shadow-2xl border-rose-200 space-y-6 animate-fadeIn">
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl space-y-6 animate-fadeIn`}>
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-extrabold text-stone-900">Quand est-on libre ?</h2>
-              <p className="text-xs text-stone-600">Choisis ton créneau préféré pour notre rendez-vous.</p>
+              <h2 className="text-2xl font-extrabold">Quand est-on libre ?</h2>
+              <p className={`text-xs ${theme.mutedText}`}>Choisis ton créneau préféré pour notre rendez-vous.</p>
             </div>
 
             <div className="space-y-3" role="radiogroup" aria-label="Créneaux proposés">
@@ -244,20 +312,18 @@ export default function RecipientFunnel() {
                     aria-checked={isSelected}
                     onClick={() => setSelectedSlot(slot)}
                     className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                      isSelected
-                        ? "border-rose-500 bg-rose-50 font-bold text-rose-900 shadow-sm"
-                        : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                      isSelected ? theme.optionSelected : theme.optionIdle
                     }`}
                   >
                     <span>
                       <span className="text-sm block">{slot.label}</span>
                       {startsAt && (
-                        <span className="text-[11px] font-normal text-stone-500">
+                        <span className={`text-[11px] font-normal ${theme.labelText}`}>
                           {format(new Date(startsAt), "d MMMM yyyy 'à' HH'h'mm", { locale: fr })}
                         </span>
                       )}
                     </span>
-                    <Calendar className="w-4 h-4 text-rose-500 shrink-0" />
+                    <Calendar className="w-4 h-4 shrink-0 opacity-70" />
                   </button>
                 );
               })}
@@ -266,7 +332,7 @@ export default function RecipientFunnel() {
             <Button
               onClick={() => setScreen(4)}
               disabled={!selectedSlot}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl disabled:opacity-40">
+              className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl disabled:opacity-40`}>
               {selectedSlot ? "Étape suivante : Le menu 🍽️" : "Choisis un créneau pour continuer"}
             </Button>
           </Card>
@@ -274,45 +340,56 @@ export default function RecipientFunnel() {
 
         {/* SCREEN 4: Menu selection */}
         {screen === 4 && (
-          <Card className="p-8 rounded-[36px] bg-white/90 backdrop-blur-xl shadow-2xl border-rose-200 space-y-6 animate-fadeIn">
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl space-y-6 animate-fadeIn`}>
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-extrabold text-stone-900">Qu'est-ce qu'on mange ?</h2>
-              <p className="text-xs text-stone-600">Sélectionne tes envies gourmandes pour la soirée.</p>
+              <h2 className="text-2xl font-extrabold">Qu'est-ce qu'on mange ?</h2>
+              <p className={`text-xs ${theme.mutedText}`}>Sélectionne tes envies gourmandes pour la soirée.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
-              {(config.selectedMenuOptions || ["sushi", "italien", "bistrot"]).map((optId: string) => {
-                const found = MENU_OPTIONS_PRESETS.find(m => m.id === optId) || { emoji: "🍽️", label: optId };
-                const isSelected = selectedMenu === found.label;
+            <div
+              className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1"
+              role="radiogroup"
+              aria-label="Propositions de menu">
+              {menuChoices.map(choice => {
+                const isSelected = selectedMenu === choice.label;
                 return (
-                  <div
-                    key={optId}
-                    onClick={() => setSelectedMenu(found.label)}
-                    className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${
-                      isSelected ? "border-rose-500 bg-rose-50 font-bold text-rose-900 shadow-sm" : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                  <button
+                    key={choice.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setSelectedMenu(choice.label)}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center gap-3 ${
+                      isSelected ? theme.optionSelected : theme.optionIdle
                     }`}
                   >
-                    <span className="text-xl">{found.emoji}</span>
-                    <span className="text-sm">{found.label}</span>
-                  </div>
+                    <span className="text-xl">{choice.emoji}</span>
+                    <span className="text-sm">{choice.label}</span>
+                  </button>
                 );
               })}
             </div>
 
             {config.includeVenue && (
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-stone-700">Proposer un lieu (optionnel)</label>
-                <Input 
-                  value={customVenue} 
-                  onChange={(e) => setCustomVenue(e.target.value)} 
-                  placeholder="ex: Le café de la Gare" 
+                <label className={`text-xs font-semibold ${theme.mutedText}`} htmlFor="lieu">
+                  Proposer un lieu (optionnel)
+                </label>
+                <Input
+                  id="lieu"
+                  value={customVenue}
+                  onChange={(e) => setCustomVenue(e.target.value)}
+                  placeholder="ex: Le café de la Gare"
+                  maxLength={80}
                   className="rounded-xl text-xs"
                 />
               </div>
             )}
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-stone-700">Un petit mot pour {config.senderName} ?</label>
+              <label className={`text-xs font-semibold ${theme.mutedText}`} htmlFor="petit-mot">
+                Un petit mot pour {config.senderName} ?
+              </label>
               <Textarea 
                 value={customNote} 
                 onChange={(e) => setCustomNote(e.target.value)} 
@@ -322,10 +399,10 @@ export default function RecipientFunnel() {
               />
             </div>
 
-            <Button 
+            <Button
               onClick={handleFinalSubmit}
               disabled={respondMutation.isPending}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl">
+              className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl`}>
               {respondMutation.isPending ? "Validation..." : "Valider mon billet de confirmation ✨"}
             </Button>
           </Card>
@@ -333,18 +410,18 @@ export default function RecipientFunnel() {
 
         {/* SCREEN 5: Confirmation Ticket */}
         {screen === 5 && (
-          <Card className="p-8 rounded-[36px] bg-white shadow-2xl border-rose-200 text-center space-y-6 animate-scaleUp">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner">
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-6 animate-scaleUp`}>
+            <div className={`w-16 h-16 rounded-full ${theme.accentSoft} flex items-center justify-center mx-auto text-3xl shadow-inner`}>
               🎉
             </div>
             <div className="space-y-2">
-              <h2 className="text-3xl font-extrabold text-stone-900">C'est un grand OUI !</h2>
-              <p className="text-xs text-stone-600">
-                {config.senderName} a reçu ta réponse et son e-mail de confirmation.
+              <h2 className="text-3xl font-extrabold">C'est un grand OUI !</h2>
+              <p className={`text-xs ${theme.mutedText}`}>
+                {config.senderName} a reçu ta réponse.
               </p>
             </div>
 
-            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 text-left space-y-2 text-xs text-stone-700">
+            <div className={`border rounded-2xl p-4 text-left space-y-2 text-xs ${theme.panelBg}`}>
               <p><span className="font-bold">Créneau :</span> {selectedSlot?.label}</p>
               {selectedSlot && slotStartsAt(selectedSlot) && (
                 <p>
@@ -357,7 +434,7 @@ export default function RecipientFunnel() {
               {customNote && <p><span className="font-bold">Note :</span> « {customNote} »</p>}
             </div>
 
-            <p className="text-xs text-stone-500 italic">
+            <p className={`text-xs italic ${theme.labelText}`}>
               {config.finalMessage || "Prépare ton plus beau sourire !"}
             </p>
 
@@ -373,11 +450,11 @@ export default function RecipientFunnel() {
                   window.URL.revokeObjectURL(url);
                   toast.success("Fichier .ics téléchargé !");
                 }}
-                className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-2xl py-3 font-semibold text-xs flex items-center justify-center gap-2">
+                className={`w-full ${theme.buttonBg} rounded-2xl py-3 font-semibold text-xs flex items-center justify-center gap-2`}>
                 <Download className="w-4 h-4" /> Ajouter au calendrier (.ics)
               </Button>
             ) : (
-              <p className="text-[11px] text-stone-400">
+              <p className={`text-[11px] ${theme.labelText}`}>
                 Ce créneau n'a pas de date précise : aucun fichier calendrier n'est disponible.
               </p>
             )}

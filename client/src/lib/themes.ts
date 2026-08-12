@@ -11,6 +11,24 @@ export interface ThemeConfig {
   buttonBg: string;
   particleColor: string;
   sceneType: ThemeId;
+  /** Texte secondaire, lisible sur `cardBg`. */
+  mutedText: string;
+  /** Libellés de section : plus discrets encore que `mutedText`. */
+  labelText: string;
+  /** Ligne de choix non sélectionnée (bordure, texte, survol). */
+  optionIdle: string;
+  /** Ligne de choix sélectionnée. */
+  optionSelected: string;
+  /**
+   * Pastille d'accent translucide (derrière l'emoji).
+   *
+   * Écrite en toutes lettres et non composée à l'exécution : Tailwind analyse
+   * le code source, une classe formée par `${accentColor}/15` n'existerait
+   * jamais dans le CSS généré.
+   */
+  accentSoft: string;
+  /** Encart récapitulatif du billet final. */
+  panelBg: string;
 }
 
 // `Record<ThemeId, …>` fait échouer la compilation si un thème du schéma
@@ -27,6 +45,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     buttonBg: "bg-rose-600 hover:bg-rose-700 text-white",
     particleColor: "rgba(244, 63, 94, 0.4)",
     sceneType: "blush",
+    accentSoft: "bg-rose-500/15",
+    mutedText: "text-stone-600",
+    labelText: "text-stone-500",
+    optionIdle: "border-stone-200 text-stone-700 hover:bg-stone-50",
+    optionSelected: "border-rose-500 bg-rose-50 text-rose-900 font-bold shadow-sm",
+    panelBg: "bg-stone-50 border-stone-200 text-stone-700",
   },
   midnight: {
     id: "midnight",
@@ -39,6 +63,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     buttonBg: "bg-indigo-600 hover:bg-indigo-500 text-white",
     particleColor: "rgba(129, 140, 248, 0.6)",
     sceneType: "midnight",
+    accentSoft: "bg-indigo-500/20",
+    mutedText: "text-indigo-200/80",
+    labelText: "text-indigo-300/70",
+    optionIdle: "border-indigo-500/30 text-indigo-100 hover:bg-indigo-500/10",
+    optionSelected: "border-indigo-400 bg-indigo-500/20 text-white font-bold shadow-sm",
+    panelBg: "bg-slate-950/60 border-indigo-500/30 text-indigo-100",
   },
   citrus: {
     id: "citrus",
@@ -51,6 +81,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     buttonBg: "bg-orange-500 hover:bg-orange-600 text-white",
     particleColor: "rgba(249, 115, 22, 0.4)",
     sceneType: "citrus",
+    accentSoft: "bg-orange-500/15",
+    mutedText: "text-orange-900/70",
+    labelText: "text-orange-800/60",
+    optionIdle: "border-orange-200 text-orange-950 hover:bg-orange-50",
+    optionSelected: "border-orange-500 bg-orange-100 text-orange-950 font-bold shadow-sm",
+    panelBg: "bg-amber-50 border-orange-200 text-orange-950",
   },
   forest: {
     id: "forest",
@@ -63,6 +99,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     buttonBg: "bg-emerald-600 hover:bg-emerald-500 text-white",
     particleColor: "rgba(52, 211, 153, 0.5)",
     sceneType: "forest",
+    accentSoft: "bg-emerald-500/20",
+    mutedText: "text-emerald-200/80",
+    labelText: "text-emerald-300/70",
+    optionIdle: "border-emerald-700/40 text-emerald-100 hover:bg-emerald-500/10",
+    optionSelected: "border-emerald-400 bg-emerald-500/20 text-white font-bold shadow-sm",
+    panelBg: "bg-emerald-950/60 border-emerald-700/40 text-emerald-100",
   },
   sepia: {
     id: "sepia",
@@ -75,6 +117,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     buttonBg: "bg-amber-800 hover:bg-amber-900 text-amber-50",
     particleColor: "rgba(180, 130, 90, 0.3)",
     sceneType: "sepia",
+    accentSoft: "bg-amber-700/15",
+    mutedText: "text-stone-700",
+    labelText: "text-stone-500",
+    optionIdle: "border-amber-300 text-stone-800 hover:bg-amber-50",
+    optionSelected: "border-amber-700 bg-amber-100 text-stone-900 font-bold shadow-sm",
+    panelBg: "bg-[#fcf8f2] border-amber-300 text-stone-800",
   },
   neon: {
     id: "neon",
@@ -87,6 +135,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     buttonBg: "bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90 text-white",
     particleColor: "rgba(34, 211, 238, 0.6)",
     sceneType: "neon",
+    accentSoft: "bg-cyan-400/20",
+    mutedText: "text-cyan-200/80",
+    labelText: "text-cyan-300/70",
+    optionIdle: "border-cyan-500/40 text-cyan-100 hover:bg-cyan-500/10",
+    optionSelected: "border-cyan-400 bg-cyan-500/20 text-white font-bold shadow-sm",
+    panelBg: "bg-gray-950/60 border-cyan-500/40 text-cyan-100",
   },
 };
 

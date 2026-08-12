@@ -17,10 +17,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <!--
+      Le script Umami du gabarit était laissé avec ses placeholders bruts
+      (%VITE_ANALYTICS_ENDPOINT%), non substitués : chaque chargement de page
+      déclenchait deux erreurs console et une requête 400. À réintroduire le
+      jour où une instance analytics existe réellement.
+    -->
+
   </body>
 
 </html>

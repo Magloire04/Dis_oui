@@ -133,6 +133,80 @@
   }
 }
 
+@layer utilities {
+  /**
+   * `animate-fadeIn` et `animate-scaleUp` étaient utilisés dans les trois pages
+   * sans avoir jamais été définis : ni ici, ni dans tw-animate-css (qui expose
+   * la syntaxe `animate-in fade-in`). Les écrans apparaissaient donc sans
+   * aucune transition.
+   */
+  @keyframes disoui-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes disoui-scale-up {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /** Battement discret, pour l'enveloppe de l'écran d'accueil. */
+  @keyframes disoui-heartbeat {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    12% {
+      transform: scale(1.08);
+    }
+    24% {
+      transform: scale(1);
+    }
+    36% {
+      transform: scale(1.05);
+    }
+    48% {
+      transform: scale(1);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: disoui-fade-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-scaleUp {
+    animation: disoui-scale-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-heartbeat {
+    animation: disoui-heartbeat 2.4s ease-in-out infinite;
+  }
+
+  /**
+   * Le bouton fuyant et les entrées d'écran relèvent du confort, pas du
+   * contenu : ils doivent disparaître pour qui a demandé moins de mouvement.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fadeIn,
+    .animate-scaleUp,
+    .animate-heartbeat {
+      animation: none;
+    }
+  }
+}
+
 @layer components {
   /**
    * Custom container utility that centers content and adds responsive padding.
