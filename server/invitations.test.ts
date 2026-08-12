@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { appRouter } from "./routers";
 import { getDb } from "./db";
-import { invitations } from "../drizzle/schema";
+import { hashIp } from "./invitationsDb";
+import { ENV } from "./_core/env";
+import { invitations, rateLimits } from "../drizzle/schema";
 import type { TrpcContext } from "./_core/context";
 import type { InvitationConfig } from "@shared/invitationConfig";
 
@@ -175,6 +177,45 @@ describe("invitations.respond", () => {
   });
 });
 
+describe("robustesse de l'envoi d'e-mail", () => {
+  const cleParDefaut = ENV.resendApiKey;
+
+  afterEach(() => {
+    ENV.resendApiKey = cleParDefaut;
+    vi.restoreAllMocks();
+  });
+
+  it("enregistre la réponse même si l'envoi échoue", async () => {
+    ENV.resendApiKey = "re_test_key";
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const api = caller();
+    const { slug, creatorToken } = await createInvitation(api);
+
+    // La réponse du destinataire est irremplaçable : une panne de Resend ne
+    // doit jamais la faire perdre.
+    await expect(
+      api.invitations.respond({ slug, answer: { day: "Ce vendredi", menu: "Sushi" } })
+    ).resolves.toEqual({ success: true, emailSent: false });
+
+    const { responses: enregistrees } = await api.invitations.getByToken({ token: creatorToken });
+    expect(enregistrees).toHaveLength(1);
+    expect((enregistrees[0].answer as any).menu).toBe("Sushi");
+  });
+
+  it("signale l'envoi réussi", async () => {
+    ENV.resendApiKey = "re_test_key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
+
+    const api = caller();
+    const { slug } = await createInvitation(api);
+    await expect(
+      api.invitations.respond({ slug, answer: { day: "Ce vendredi" } })
+    ).resolves.toEqual({ success: true, emailSent: true });
+  });
+});
+
 describe("invitations.getByToken", () => {
   it("rejette un jeton inconnu", async () => {
     await expect(caller().invitations.getByToken({ token: "jeton-bidon" })).rejects.toThrow();
@@ -319,6 +360,25 @@ describe("rate limiting", () => {
     }
 
     await expect(createInvitation(api)).rejects.toThrow(/3 par heure/);
+  });
+
+  it("bloque au-delà de 10 créations sur 24 h, même étalées", async () => {
+    const ip = "203.0.113.30";
+    const instance = await getDb();
+    if (!instance) throw new Error("base indisponible");
+
+    // 10 tentatives déjà consommées dans la journée, mais hors de la fenêtre
+    // horaire : seule la limite journalière peut encore s'appliquer.
+    const ipHash = hashIp(ip);
+    await instance.insert(rateLimits).values(
+      Array.from({ length: 10 }, (_, i) => ({
+        ipHash,
+        actionType: "create_invitation",
+        timestamp: new Date(Date.now() - (2 + i) * 3600_000),
+      }))
+    );
+
+    await expect(createInvitation(caller(ip))).rejects.toThrow(/par jour/);
   });
 
   it("isole les compteurs par adresse IP", async () => {
