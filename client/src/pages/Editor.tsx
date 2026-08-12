@@ -21,19 +21,8 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QrCode as QrCodeSvg } from "@/components/QrCode";
-import {
-  Heart,
-  ArrowLeft,
-  ArrowRight,
-  Sparkles,
-  Smile,
-  Calendar,
-  Utensils,
-  Palette,
-  Send,
-  RotateCcw,
-  Copy,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Smile, Calendar, Utensils, Palette, Send, RotateCcw, Copy } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "dis_oui_draft";
@@ -299,14 +288,14 @@ export default function Editor() {
 
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
-        <Card className="max-w-xl w-full p-8 rounded-3xl shadow-2xl space-y-6 text-center border-rose-100 bg-white">
+        <Card className="max-w-xl w-full p-8 rounded-3xl shadow-2xl space-y-6 text-center border-brand-100 bg-white">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner">
             ✨
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-extrabold text-stone-900">Votre invitation est prête !</h1>
             <p className="text-sm text-stone-600">
-              Partagez le lien ci-dessous avec <span className="font-bold text-stone-900">{recipientName}</span>. Suspense garanti !
+              Partagez le lien ci-dessous avec <span className="font-display font-bold text-ink-900">{recipientName}</span>. Suspense garanti !
             </p>
           </div>
 
@@ -324,7 +313,7 @@ export default function Editor() {
                   navigator.clipboard.writeText(fullRecipientUrl);
                   toast.success("Lien copié dans le presse-papier !");
                 }}
-                className="bg-rose-600 hover:bg-rose-700 text-white shrink-0">
+                className="bg-brand-600 hover:bg-brand-700 text-white shrink-0">
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
@@ -367,10 +356,10 @@ export default function Editor() {
             <ArrowLeft className="w-5 h-5 text-stone-700" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center text-white">
-              <Heart className="w-4 h-4 fill-current" />
-            </div>
-            <span className="font-bold text-stone-900">Éditeur Dis oui</span>
+            <span className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
+            <BrandMark size={21} decorative />
+          </span>
+            <span className="font-display font-bold text-ink-900">Éditeur Dis oui</span>
           </div>
         </div>
 
@@ -378,7 +367,7 @@ export default function Editor() {
         <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-stone-500">
           <span>Étape {step} sur 6</span>
           <div className="w-32 h-2 bg-stone-200 rounded-full overflow-hidden">
-            <div className="h-full bg-rose-600 transition-all duration-300" style={{ width: `${(step / 6) * 100}%` }}></div>
+            <div className="h-full bg-brand-600 transition-all duration-300" style={{ width: `${(step / 6) * 100}%` }}></div>
           </div>
         </div>
 
@@ -390,7 +379,7 @@ export default function Editor() {
             }}
             variant="ghost" 
             size="sm" 
-            className="text-stone-500 hover:text-rose-600 gap-1">
+            className="text-stone-500 hover:text-brand-700 gap-1">
             <RotateCcw className="w-4 h-4" /> Réinitialiser
           </Button>
         </div>
@@ -422,9 +411,9 @@ export default function Editor() {
                     onClick={() => setStep(s.id)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
                       isActive 
-                        ? "bg-rose-600 text-white shadow-md shadow-rose-600/20" 
+                        ? "bg-brand-600 text-white shadow-md shadow-brand-600/20" 
                         : isPassed 
-                        ? "bg-rose-50 text-rose-700" 
+                        ? "bg-brand-50 text-brand-800" 
                         : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                     }`}
                   >
@@ -479,7 +468,7 @@ export default function Editor() {
                         onClick={() => setRelation(rel.id)}
                         className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
                           relation === rel.id 
-                            ? "border-rose-500 bg-rose-50 text-rose-800 shadow-sm" 
+                            ? "border-brand-600 bg-brand-50 text-brand-800 shadow-sm" 
                             : "border-stone-200 text-stone-700 hover:border-stone-300"
                         }`}
                       >
@@ -504,7 +493,7 @@ export default function Editor() {
                         onClick={() => handleToneChange(t.id)}
                         className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
                           tone === t.id 
-                            ? "border-rose-500 bg-rose-50 text-rose-800 shadow-sm" 
+                            ? "border-brand-600 bg-brand-50 text-brand-800 shadow-sm" 
                             : "border-stone-200 text-stone-700 hover:border-stone-300"
                         }`}
                       >
@@ -557,7 +546,7 @@ export default function Editor() {
                         type="button"
                         onClick={() => setEmoji(em)}
                         className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border transition-all ${
-                          emoji === em ? "border-rose-500 bg-rose-50 scale-110" : "border-stone-200 hover:bg-stone-50"
+                          emoji === em ? "border-brand-600 bg-brand-50 scale-110" : "border-stone-200 hover:bg-stone-50"
                         }`}
                       >
                         {em}
@@ -581,7 +570,7 @@ export default function Editor() {
                         onClick={() => setNoButtonBehavior(b.id)}
                         className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
                           noButtonBehavior === b.id 
-                            ? "border-rose-500 bg-rose-50 text-rose-800" 
+                            ? "border-brand-600 bg-brand-50 text-brand-800" 
                             : "border-stone-200 text-stone-700"
                         }`}
                       >
@@ -603,7 +592,7 @@ export default function Editor() {
                       max={30}
                       value={maxRefusals}
                       onChange={(e) => setMaxRefusals(Number(e.target.value))}
-                      className="w-full accent-rose-600"
+                      className="w-full accent-brand-600"
                     />
                     <p className="text-[11px] text-stone-500">
                       Passé ce nombre, le bouton « Non » se désactive et le destinataire garde une
@@ -736,7 +725,7 @@ export default function Editor() {
                           }
                         }}
                         className={`cursor-pointer p-4 rounded-2xl border flex items-center gap-3 transition-all ${
-                          isSelected ? "border-rose-500 bg-rose-50/50 shadow-sm" : "border-stone-200 hover:border-stone-300"
+                          isSelected ? "border-brand-600 bg-brand-50/50 shadow-sm" : "border-stone-200 hover:border-stone-300"
                         }`}
                       >
                         <span className="text-2xl">{opt.emoji}</span>
@@ -752,7 +741,7 @@ export default function Editor() {
                       type="checkbox" 
                       checked={includeSurprise} 
                       onChange={(e) => setIncludeSurprise(e.target.checked)}
-                      className="w-4 h-4 accent-rose-600 rounded"
+                      className="w-4 h-4 accent-brand-600 rounded"
                     />
                     <span className="text-sm text-stone-700 font-medium">Ajouter l'option « Surprends-moi » ✨</span>
                   </label>
@@ -761,7 +750,7 @@ export default function Editor() {
                       type="checkbox" 
                       checked={includeVenue} 
                       onChange={(e) => setIncludeVenue(e.target.checked)}
-                      className="w-4 h-4 accent-rose-600 rounded"
+                      className="w-4 h-4 accent-brand-600 rounded"
                     />
                     <span className="text-sm text-stone-700 font-medium">Autoriser le destinataire à proposer un lieu 📍</span>
                   </label>
@@ -783,10 +772,10 @@ export default function Editor() {
                       key={th.id}
                       onClick={() => setThemeKey(th.id)}
                       className={`cursor-pointer p-4 rounded-2xl border transition-all text-center space-y-2 bg-gradient-to-br ${th.bgGradient} ${
-                        themeKey === th.id ? "ring-2 ring-rose-600 shadow-lg scale-102" : "border-stone-200 shadow-sm"
+                        themeKey === th.id ? "ring-2 ring-brand-600 shadow-lg scale-102" : "border-stone-200 shadow-sm"
                       }`}
                     >
-                      <span className="text-2xl">{th.id === 'blush' ? '🌸' : th.id === 'midnight' ? '🌙' : th.id === 'citrus' ? '🍊' : th.id === 'forest' ? '🌲' : th.id === 'sepia' ? '📜' : '⚡'}</span>
+                      <span className="text-2xl">{th.emoji}</span>
                       <h4 className="font-bold text-stone-900 text-xs">{th.name}</h4>
                     </div>
                   ))}
@@ -798,7 +787,7 @@ export default function Editor() {
                       type="checkbox"
                       checked={enableAnimation}
                       onChange={(e) => setEnableAnimation(e.target.checked)}
-                      className="w-4 h-4 accent-rose-600 rounded"
+                      className="w-4 h-4 accent-brand-600 rounded"
                     />
                     <span className="text-sm text-stone-700 font-medium">Activer les animations d'écran</span>
                   </label>
@@ -818,7 +807,7 @@ export default function Editor() {
                             onClick={() => setMotionIntensity(m.id)}
                             className={`p-2 rounded-xl border text-xs font-bold transition-all ${
                               motionIntensity === m.id
-                                ? "border-rose-500 bg-rose-50 text-rose-800"
+                                ? "border-brand-600 bg-brand-50 text-brand-800"
                                 : "border-stone-200 text-stone-700 hover:border-stone-300"
                             }`}
                           >
@@ -888,7 +877,7 @@ export default function Editor() {
                     type="checkbox"
                     checked={allowMultiple}
                     onChange={(e) => setAllowMultiple(e.target.checked)}
-                    className="w-4 h-4 accent-rose-600 rounded mt-0.5"
+                    className="w-4 h-4 accent-brand-600 rounded mt-0.5"
                   />
                   <span className="text-sm text-stone-700 font-medium">
                     Autoriser plusieurs réponses
@@ -902,7 +891,7 @@ export default function Editor() {
                   <Button 
                     onClick={handleGenerate}
                     disabled={createMutation.isPending}
-                    className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-xl py-4 font-bold text-base shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2">
+                    className="w-full bg-brand-600 hover:bg-brand-700 text-white rounded-xl py-4 font-bold text-base shadow-xl shadow-brand-600/30 flex items-center justify-center gap-2">
                     {createMutation.isPending ? "Génération en cours..." : "Générer mon lien magique ✨"}
                   </Button>
                 </div>
@@ -961,7 +950,9 @@ export default function Editor() {
               </div>
 
               <div className="z-10 w-full space-y-2 pb-4">
-                <div className="w-full py-3 rounded-2xl bg-rose-600 text-white font-bold text-sm shadow-lg shadow-rose-600/30">
+                {/* L'aperçu reflète le thème d'invitation choisi, pas
+                    l'habillage de l'application. */}
+                <div className={`w-full py-3 rounded-2xl ${currentTheme.buttonBg} font-bold text-sm shadow-lg`}>
                   Oui, avec immense plaisir ✨
                 </div>
                 <div className="w-full py-2.5 rounded-2xl bg-white/80 backdrop-blur text-stone-700 font-semibold text-xs border border-stone-200">

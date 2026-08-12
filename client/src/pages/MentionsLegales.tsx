@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Heart, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 
 /**
  * Mentions légales.
@@ -31,10 +32,10 @@ export default function MentionsLegales() {
           <ArrowLeft className="w-5 h-5 text-stone-700" />
         </Button>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center text-white">
-            <Heart className="w-4 h-4 fill-current" />
-          </div>
-          <span className="font-bold text-stone-900">Mentions légales</span>
+          <span className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
+            <BrandMark size={21} decorative />
+          </span>
+          <span className="font-display font-bold text-ink-900">Mentions légales</span>
         </div>
       </header>
 
@@ -44,19 +45,34 @@ export default function MentionsLegales() {
         <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <p>
-            Les champs surlignés doivent être renseignés avant toute mise en ligne publique : ces
-            informations sont légalement obligatoires et ne peuvent pas être déduites du code.
+            Les champs surlignés restent à renseigner avant toute mise en ligne publique : ces
+            informations sont légalement obligatoires et ne peuvent être fournies que par l'éditeur.
+            Le bloc « hébergeur » ne pourra l'être qu'une fois l'hébergement choisi.
           </p>
         </div>
 
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-stone-900">Éditeur du site</h2>
           <ul className="text-sm space-y-2">
-            <li>Nom / raison sociale : <AChamp>{A_COMPLETER}</AChamp></li>
-            <li>Statut : <AChamp>{A_COMPLETER}</AChamp></li>
-            <li>Adresse : <AChamp>{A_COMPLETER}</AChamp></li>
-            <li>Adresse e-mail de contact : <AChamp>{A_COMPLETER}</AChamp></li>
-            <li>Directeur de la publication : <AChamp>{A_COMPLETER}</AChamp></li>
+            <li>Nom / raison sociale : <strong>ByTechnum</strong></li>
+            <li>Statut juridique : <AChamp>{A_COMPLETER}</AChamp></li>
+            <li>
+              Adresse : Porto-Novo, Bénin — <AChamp>adresse postale complète {A_COMPLETER}</AChamp>
+            </li>
+            <li>
+              Adresse e-mail de contact :{" "}
+              <a href="mailto:elisee.atonde@bytechnum.com" className="text-brand-700 underline underline-offset-2">
+                elisee.atonde@bytechnum.com
+              </a>
+            </li>
+            <li>
+              Téléphone :{" "}
+              <a href="tel:+2290150617300" className="text-brand-700 underline underline-offset-2">
+                +229 01 50 61 73 00
+              </a>
+            </li>
+            <li>Directeur de la publication : <strong>Elisée Magloire ATONDE</strong></li>
+            <li>Identifiants RCCM / IFU : <AChamp>{A_COMPLETER}</AChamp></li>
           </ul>
         </section>
 
@@ -75,7 +91,7 @@ export default function MentionsLegales() {
             Le détail des données traitées et de leur durée de conservation figure sur la page{" "}
             <button
               onClick={() => setLocation("/confidentialite")}
-              className="text-rose-600 underline underline-offset-2">
+              className="text-brand-700 underline underline-offset-2">
               confidentialité
             </button>
             .

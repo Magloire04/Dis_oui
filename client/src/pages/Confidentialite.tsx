@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { LINK_DURATIONS } from "@shared/invitationConfig";
 
 /**
@@ -21,10 +22,10 @@ export default function Confidentialite() {
           <ArrowLeft className="w-5 h-5 text-stone-700" />
         </Button>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center text-white">
-            <Heart className="w-4 h-4 fill-current" />
-          </div>
-          <span className="font-bold text-stone-900">Confidentialité</span>
+          <span className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
+            <BrandMark size={21} decorative />
+          </span>
+          <span className="font-display font-bold text-ink-900">Confidentialité</span>
         </div>
       </header>
 
@@ -95,7 +96,7 @@ export default function Confidentialite() {
             que l'accès aux données la concernant, en écrivant à l'adresse indiquée dans les{" "}
             <button
               onClick={() => setLocation("/mentions-legales")}
-              className="text-rose-600 underline underline-offset-2">
+              className="text-brand-700 underline underline-offset-2">
               mentions légales
             </button>
             . Précisez le lien de suivi concerné pour que la demande puisse être traitée.

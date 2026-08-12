@@ -1,7 +1,55 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Polices auto-hébergées : la page /confidentialite affirme qu'aucun traceur
+   tiers n'est déposé, charger Google Fonts la contredirait. */
+/* Inter ne propose pas de feuille par sous-ensemble ; ce n'est pas gênant, la
+   règle `unicode-range` fait que le navigateur ne télécharge que le latin. */
+@import "@fontsource-variable/inter/wght.css";
+/* Poppins n'existe pas en fonte variable. On ne charge que les deux graisses
+   réellement utilisées, et seulement en latin : les jeux devanagari,
+   cyrillique et grec ajoutaient 180 Ko de fichiers au build sans usage.
+   `latin-ext` reste nécessaire, il porte le « œ » de « cœur ». */
+@import "@fontsource/poppins/latin-600.css";
+@import "@fontsource/poppins/latin-ext-600.css";
+@import "@fontsource/poppins/latin-700.css";
+@import "@fontsource/poppins/latin-ext-700.css";
+
 @custom-variant dark (&:is(.dark *));
+
+/**
+ * Charte ByTechnum.
+ *
+ * L'échelle est dérivée en OKLCH depuis le bleu de charte pour que la
+ * progression reste perceptuellement régulière.
+ *
+ * `brand-600` vaut #4d69f1 et non le #4f6bf6 exact de la charte : le blanc sur
+ * #4f6bf6 plafonne à 4,41:1, juste sous le seuil AA de 4,5. Deux pour cent plus
+ * sombre suffit à atteindre 4,56:1, pour un écart invisible à l'œil. Le logo,
+ * lui, n'est pas du texte et garde la couleur exacte (voir BrandMark.tsx).
+ */
+@theme {
+  --color-brand-50: #eef6ff;
+  --color-brand-100: #dcecff;
+  --color-brand-200: #c1d9ff;
+  --color-brand-300: #9fbfff;
+  --color-brand-400: #7c9eff;
+  --color-brand-500: #6080ff;
+  --color-brand-600: #4d69f1;
+  --color-brand-700: #374cc5;
+  --color-brand-800: #28399e;
+  --color-brand-900: #1e2b7b;
+  --color-brand-950: #0f194a;
+
+  /* Anthracite du logo ByTechnum. */
+  --color-ink-700: #4a4a4a;
+  --color-ink-800: #3a3a3a;
+  --color-ink-900: #2d2d2d;
+  --color-ink-950: #1c1c1c;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Inter Variable", ui-sans-serif, sans-serif;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -118,7 +166,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+  /* Poppins porte les titres et la marque, Inter le texte courant — le même
+     partage que la signature ByTechnum. */
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

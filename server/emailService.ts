@@ -17,6 +17,7 @@ const THEME_ACCENTS: Record<ThemeId, string> = {
   forest: "#10b981",
   sepia: "#92400e",
   neon: "#06b6d4",
+  bytechnum: "#4f6bf6",
 };
 
 function escapeHtml(value: string): string {
@@ -66,7 +67,7 @@ function buildHtml(options: CreatorNotification, hasCalendarFile: boolean): stri
     <table role="presentation" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e7e5e4;">
       <tr><td>
         <p style="margin:0 0 8px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${accent};font-weight:700;">
-          Bonne nouvelle
+          Dis oui · Bonne nouvelle
         </p>
         <h1 style="margin:0 0 16px;font-size:24px;color:#1c1917;">
           ${escapeHtml(options.recipientName)} a dit oui !
@@ -93,8 +94,9 @@ function buildHtml(options: CreatorNotification, hasCalendarFile: boolean): stri
           Voir la page de suivi
         </a>
 
-        <p style="margin:24px 0 0;font-size:11px;color:#a8a29e;">
-          Vous recevez cet e-mail parce que vous avez créé une invitation sur Dis oui.
+        <p style="margin:28px 0 0;padding-top:20px;border-top:1px solid #e7e5e4;font-size:11px;color:#a8a29e;line-height:1.6;">
+          Vous recevez cet e-mail parce que vous avez créé une invitation sur Dis oui.<br />
+          Un produit <strong style="color:#2d2d2d;">ByTechnum</strong> — la technologie à votre portée.
         </p>
       </td></tr>
     </table>

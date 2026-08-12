@@ -9,7 +9,15 @@ import { z } from "zod";
  * ci-dessous sont donc autant une contrainte produit qu'une limite d'abus.
  */
 
-export const THEME_IDS = ["blush", "midnight", "citrus", "forest", "sepia", "neon"] as const;
+export const THEME_IDS = [
+  "blush",
+  "midnight",
+  "citrus",
+  "forest",
+  "sepia",
+  "neon",
+  "bytechnum",
+] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 export const RELATIONS = ["crush", "partenaire", "amie", "complique"] as const;

@@ -4,6 +4,14 @@ export interface ThemeConfig {
   id: ThemeId;
   name: string;
   tagline: string;
+  /**
+   * Pictogramme de la vignette de thème.
+   *
+   * Il vivait dans une chaîne de ternaires dupliquée entre l'accueil et
+   * l'éditeur, qui retombait silencieusement sur « ⚡ » pour tout identifiant
+   * inconnu : un thème ajouté y restait invisible.
+   */
+  emoji: string;
   bgGradient: string;
   cardBg: string;
   textColor: string;
@@ -36,6 +44,7 @@ export interface ThemeConfig {
 export const THEMES: Record<ThemeId, ThemeConfig> = {
   blush: {
     id: "blush",
+    emoji: "🌸",
     name: "Blush",
     tagline: "Rose poudré, terrasse au crépuscule",
     bgGradient: "from-rose-50 via-pink-100 to-amber-50",
@@ -54,6 +63,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   midnight: {
     id: "midnight",
+    emoji: "🌙",
     name: "Minuit",
     tagline: "Bleu nuit, ciel étoilé, ambiance élégante",
     bgGradient: "from-slate-950 via-indigo-950 to-slate-900",
@@ -72,6 +82,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   citrus: {
     id: "citrus",
+    emoji: "🍊",
     name: "Agrume",
     tagline: "Orange & corail, été lumineux, plage",
     bgGradient: "from-amber-50 via-orange-100 to-yellow-100",
@@ -90,6 +101,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   forest: {
     id: "forest",
+    emoji: "🌲",
     name: "Forêt",
     tagline: "Vert profond, lucioles et mystère",
     bgGradient: "from-emerald-950 via-green-950 to-teal-950",
@@ -108,6 +120,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   sepia: {
     id: "sepia",
+    emoji: "📜",
     name: "Sépia",
     tagline: "Crème & brun, cinéma rétro romantique",
     bgGradient: "from-amber-100 via-stone-200 to-amber-200",
@@ -126,6 +139,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   neon: {
     id: "neon",
+    emoji: "⚡",
     name: "Néon",
     tagline: "Violet & cyan, ville nocturne branchée",
     bgGradient: "from-purple-950 via-violet-950 to-cyan-950",
@@ -141,6 +155,29 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     optionIdle: "border-cyan-500/40 text-cyan-100 hover:bg-cyan-500/10",
     optionSelected: "border-cyan-400 bg-cyan-500/20 text-white font-bold shadow-sm",
     panelBg: "bg-gray-950/60 border-cyan-500/40 text-cyan-100",
+  },
+  // Thème aux couleurs de l'éditeur, pour les invitations à usage
+  // professionnel : un déjeuner d'équipe, un rendez-vous client. C'est le seul
+  // thème qui reprend la charte ByTechnum ; les six autres restent le contenu
+  // créatif du produit.
+  bytechnum: {
+    id: "bytechnum",
+    emoji: "💠",
+    name: "ByTechnum",
+    tagline: "Bleu tech & anthracite, sobre et professionnel",
+    bgGradient: "from-slate-50 via-brand-50 to-slate-100",
+    cardBg: "bg-white/90 backdrop-blur-md border-brand-200",
+    textColor: "text-ink-900",
+    accentColor: "bg-brand-600",
+    buttonBg: "bg-brand-600 hover:bg-brand-700 text-white",
+    particleColor: "rgba(79, 107, 246, 0.35)",
+    sceneType: "bytechnum",
+    accentSoft: "bg-brand-500/15",
+    mutedText: "text-ink-700",
+    labelText: "text-brand-700",
+    optionIdle: "border-brand-200 text-ink-800 hover:bg-brand-50",
+    optionSelected: "border-brand-600 bg-brand-50 text-brand-900 font-bold shadow-sm",
+    panelBg: "bg-brand-50 border-brand-200 text-ink-800",
   },
 };
 
