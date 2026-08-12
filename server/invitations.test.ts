@@ -35,7 +35,20 @@ const validConfig: InvitationConfig = {
   noButtonBehavior: "fuyant",
   maxRefusals: 12,
   teases: ["Tu hésites encore ?"],
-  selectedDates: ["Ce vendredi à 19h30", "Ce samedi à 20h00"],
+  selectedDates: [
+    {
+      id: "slot-1",
+      label: "Ce vendredi à 19h30",
+      startsAt: "2026-08-14T17:30:00.000Z",
+      durationMin: 120,
+    },
+    {
+      id: "slot-2",
+      label: "Ce samedi à 20h00",
+      startsAt: "2026-08-15T18:00:00.000Z",
+      durationMin: 120,
+    },
+  ],
   customTimeNote: "19h00 — en retard, mais avec classe",
   selectedMenuOptions: ["sushi", "italien"],
   includeSurprise: true,
@@ -122,9 +135,44 @@ describe("invitations.respond", () => {
     });
 
     await api.invitations.respond({ slug, answer: { day: "Ce vendredi" } });
-    await expect(api.invitations.respond({ slug, answer: { day: "Samedi" } })).resolves.toEqual({
+    await expect(api.invitations.respond({ slug, answer: { day: "Samedi" } })).resolves.toMatchObject({
       success: true,
     });
+  });
+
+  it("conserve la date réelle du créneau retenu", async () => {
+    const api = caller();
+    const { slug, creatorToken } = await createInvitation(api);
+    const chosen = validConfig.selectedDates[1];
+
+    await api.invitations.respond({
+      slug,
+      answer: {
+        day: chosen.label,
+        time: "20h00",
+        startsAt: chosen.startsAt,
+        durationMin: chosen.durationMin,
+        menu: "Bar à sushis",
+      },
+    });
+
+    const { responses } = await api.invitations.getByToken({ token: creatorToken });
+    const answer = responses[0].answer as any;
+    expect(answer.startsAt).toBe(chosen.startsAt);
+    expect(answer.time).toBe("20h00");
+  });
+
+  it("refuse une date de créneau qui n'est pas une date ISO", async () => {
+    const api = caller();
+    const { slug } = await createInvitation(api);
+
+    await expect(
+      // Le type est `string` : seule la validation d'exécution rejette la valeur.
+      api.invitations.respond({
+        slug,
+        answer: { day: "Ce vendredi", startsAt: "vendredi prochain" },
+      })
+    ).rejects.toThrow();
   });
 });
 

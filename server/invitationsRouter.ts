@@ -152,8 +152,10 @@ export const invitationsRouter = router({
 
       await createResponseRecord(invitation.id, input.answer);
 
+      // La réponse est enregistrée : un échec d'envoi ne doit surtout pas la
+      // perdre. `sendCreatorNotification` ne lève jamais et rapporte son issue.
       const config = invitation.config as InvitationConfig;
-      await sendCreatorNotification({
+      const notification = await sendCreatorNotification({
         toEmail: invitation.creatorEmail,
         recipientName: config.recipientName,
         senderName: config.senderName,
@@ -162,7 +164,7 @@ export const invitationsRouter = router({
         theme: config.themeKey,
       });
 
-      return { success: true };
+      return { success: true, emailSent: notification.sent };
     }),
 
   getByToken: publicProcedure

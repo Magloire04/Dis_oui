@@ -33,6 +33,25 @@ export const LINK_DURATIONS = [7, 30, 90] as const;
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 
+export const DEFAULT_SLOT_DURATION_MIN = 120;
+
+/**
+ * Un créneau proposé par le créateur.
+ *
+ * `label` porte la formulation libre affichée au destinataire (« Ce vendredi à
+ * 19h30 »), `startsAt` la date réelle. Le format d'origine ne stockait que le
+ * texte, ce qui rendait tout fichier calendrier impossible à générer : un
+ * `.ics` exige un DTSTART.
+ */
+export const dateSlotSchema = z.object({
+  id: z.string().min(1).max(24),
+  label: shortText(60),
+  startsAt: z.iso.datetime(),
+  durationMin: z.number().int().min(15).max(720).default(DEFAULT_SLOT_DURATION_MIN),
+});
+
+export type DateSlot = z.infer<typeof dateSlotSchema>;
+
 export const invitationConfigSchema = z.object({
   recipientName: shortText(40),
   senderName: shortText(40),
@@ -46,7 +65,7 @@ export const invitationConfigSchema = z.object({
   maxRefusals: z.number().int().min(1).max(50),
   teases: z.array(shortText(120)).min(1).max(MAX_TEASES),
 
-  selectedDates: z.array(shortText(60)).min(1).max(MAX_DATE_SLOTS),
+  selectedDates: z.array(dateSlotSchema).min(1).max(MAX_DATE_SLOTS),
   customTimeNote: z.string().trim().max(80).default(""),
 
   selectedMenuOptions: z.array(shortText(32)).min(1).max(MAX_MENU_OPTIONS),
@@ -68,6 +87,11 @@ export type InvitationConfig = z.infer<typeof invitationConfigSchema>;
 export const invitationAnswerSchema = z.object({
   day: shortText(60),
   time: z.string().trim().max(30).default(""),
+  // Date réelle du créneau retenu, recopiée depuis le créneau choisi. Nulle
+  // pour les invitations créées avant les créneaux datés : aucun fichier
+  // calendrier n'est alors générable.
+  startsAt: z.iso.datetime().nullable().default(null),
+  durationMin: z.number().int().min(15).max(720).default(DEFAULT_SLOT_DURATION_MIN),
   menu: z.string().trim().max(60).default(""),
   venue: z.string().trim().max(80).default(""),
   customNote: z.string().trim().max(280).default(""),
@@ -90,6 +114,31 @@ export function userAuthoredText(config: InvitationConfig): string[] {
     config.customTimeNote,
     config.finalMessage,
     ...config.teases,
-    ...config.selectedDates,
+    // Seul le libellé d'un créneau est rédigé : ni son identifiant ni sa date.
+    ...config.selectedDates.map(slot => slot.label),
   ];
+}
+
+/**
+ * Lit `selectedDates` en tolérant l'ancien format.
+ *
+ * Les invitations créées avant les créneaux datés stockent un simple
+ * `string[]`. Elles restent lisibles — le libellé s'affiche normalement — mais
+ * sans date exploitable, donc sans fichier calendrier.
+ */
+export function normalizeDateSlots(value: unknown): DateSlot[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry, i): DateSlot[] => {
+    if (typeof entry === "string") {
+      return [{ id: `legacy-${i}`, label: entry, startsAt: "", durationMin: DEFAULT_SLOT_DURATION_MIN }];
+    }
+    const parsed = dateSlotSchema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+/** Un créneau hérité de l'ancien format n'a pas de date exploitable. */
+export function slotStartsAt(slot: DateSlot): string | null {
+  return slot.startsAt || null;
 }

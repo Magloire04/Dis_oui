@@ -7,13 +7,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { THEMES, MENU_OPTIONS_PRESETS, TONE_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import {
+  DEFAULT_SLOT_DURATION_MIN,
   invitationConfigSchema,
+  MAX_DATE_SLOTS,
+  type DateSlot,
   type MotionIntensity,
   type NoButtonBehavior,
   type Relation,
   type ThemeId,
   type Tone,
 } from "@shared/invitationConfig";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { 
   Heart, 
   ArrowLeft, 
@@ -31,6 +36,66 @@ import {
   QrCode
 } from "lucide-react";
 import { toast } from "sonner";
+
+// --- Créneaux ---------------------------------------------------------------
+
+/** Libellé lisible par défaut : « vendredi 14 août à 19h30 ». */
+function slotLabelFor(date: Date): string {
+  return format(date, "EEEE d MMMM 'à' HH'h'mm", { locale: fr });
+}
+
+function makeSlot(date: Date): DateSlot {
+  return {
+    id: crypto.randomUUID().slice(0, 8),
+    label: slotLabelFor(date),
+    startsAt: date.toISOString(),
+    durationMin: DEFAULT_SLOT_DURATION_MIN,
+  };
+}
+
+/** Prochaine occurrence du jour demandé (0 = dimanche), à l'heure indiquée. */
+function nextWeekday(weekday: number, hours: number, minutes: number): Date {
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  const delta = (weekday - date.getDay() + 7) % 7 || 7;
+  date.setDate(date.getDate() + delta);
+  return date;
+}
+
+function defaultSlots(): DateSlot[] {
+  return [
+    makeSlot(nextWeekday(5, 19, 30)), // vendredi soir
+    makeSlot(nextWeekday(6, 20, 0)), // samedi soir
+    makeSlot(nextWeekday(0, 12, 0)), // dimanche midi
+  ];
+}
+
+/** `2026-08-14` et `19:30` tels qu'attendus par les champs date/heure natifs. */
+function slotDateInput(slot: DateSlot): string {
+  return format(new Date(slot.startsAt), "yyyy-MM-dd");
+}
+
+function slotTimeInput(slot: DateSlot): string {
+  return format(new Date(slot.startsAt), "HH:mm");
+}
+
+/**
+ * Recompose la date à partir des champs natifs. Les valeurs sont exprimées
+ * dans le fuseau du créateur ; `new Date("2026-08-14T19:30")` sans suffixe est
+ * bien interprété en heure locale, ce qui est le comportement attendu.
+ */
+function withDateTime(slot: DateSlot, dateInput: string, timeInput: string): DateSlot {
+  const parsed = new Date(`${dateInput}T${timeInput}`);
+  if (Number.isNaN(parsed.getTime())) return slot;
+
+  // Le libellé suit la date tant que le créateur ne l'a pas personnalisé.
+  const wasAutoLabel = slot.label === slotLabelFor(new Date(slot.startsAt));
+  return {
+    ...slot,
+    startsAt: parsed.toISOString(),
+    label: wasAutoLabel ? slotLabelFor(parsed) : slot.label,
+  };
+}
 
 // Étape où corriger chaque champ, pour renvoyer l'utilisateur au bon endroit
 // plutôt que d'afficher une erreur sans issue.
@@ -83,11 +148,7 @@ export default function Editor() {
   const [teases, setTeases] = useState<string[]>(TONE_PRESETS.doux.teases);
 
   // Time slots
-  const [selectedDates, setSelectedDates] = useState<string[]>([
-    "Ce vendredi à 19h30",
-    "Ce samedi à 20h00",
-    "Dimanche midi"
-  ]);
+  const [selectedDates, setSelectedDates] = useState<DateSlot[]>(() => defaultSlots());
   const [customTimeNote, setCustomTimeNote] = useState("19h00 — en retard, mais avec classe");
 
   // Menu & Options
@@ -171,7 +232,7 @@ export default function Editor() {
       // Le textarea de taquineries produit une ligne vide à chaque retour
       // chariot ; elles ne doivent pas partir en base.
       teases: teases.map(t => t.trim()).filter(Boolean),
-      selectedDates: selectedDates.map(d => d.trim()).filter(Boolean),
+      selectedDates,
       customTimeNote,
       selectedMenuOptions,
       includeSurprise,
@@ -490,34 +551,82 @@ export default function Editor() {
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-extrabold text-stone-900">Les créneaux proposés</h2>
-                  <p className="text-sm text-stone-600">Proposez jusqu'à 3 moments clés pour votre rendez-vous.</p>
+                  <p className="text-sm text-stone-600">
+                    Proposez jusqu'à {MAX_DATE_SLOTS} moments clés. La date réelle sert à générer le fichier
+                    calendrier ; le libellé est ce que verra le destinataire.
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  {selectedDates.map((dateStr, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <Input 
-                        value={dateStr}
-                        onChange={(e) => {
-                          const updated = [...selectedDates];
-                          updated[idx] = e.target.value;
-                          setSelectedDates(updated);
-                        }}
-                        className="rounded-xl"
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setSelectedDates(selectedDates.filter((_, i) => i !== idx))}
-                        className="text-stone-400 hover:text-red-500">
-                        ✕
-                      </Button>
-                    </div>
-                  ))}
-                  {selectedDates.length < 5 && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setSelectedDates([...selectedDates, "Nouveau créneau"])}
+                <div className="space-y-4">
+                  {selectedDates.map((slot, idx) => {
+                    const updateSlot = (next: DateSlot) =>
+                      setSelectedDates(selectedDates.map((s, i) => (i === idx ? next : s)));
+
+                    return (
+                      <div key={slot.id} className="rounded-2xl border border-stone-200 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+                            Créneau {idx + 1}
+                          </span>
+                          {selectedDates.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Supprimer le créneau ${idx + 1}`}
+                              onClick={() => setSelectedDates(selectedDates.filter((_, i) => i !== idx))}
+                              className="text-stone-400 hover:text-red-500 h-7 w-7">
+                              ✕
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-stone-700" htmlFor={`date-${slot.id}`}>
+                              Date
+                            </label>
+                            <Input
+                              id={`date-${slot.id}`}
+                              type="date"
+                              value={slotDateInput(slot)}
+                              onChange={e => updateSlot(withDateTime(slot, e.target.value, slotTimeInput(slot)))}
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-stone-700" htmlFor={`heure-${slot.id}`}>
+                              Heure
+                            </label>
+                            <Input
+                              id={`heure-${slot.id}`}
+                              type="time"
+                              value={slotTimeInput(slot)}
+                              onChange={e => updateSlot(withDateTime(slot, slotDateInput(slot), e.target.value))}
+                              className="rounded-xl"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-stone-700" htmlFor={`libelle-${slot.id}`}>
+                            Libellé affiché au destinataire
+                          </label>
+                          <Input
+                            id={`libelle-${slot.id}`}
+                            value={slot.label}
+                            maxLength={60}
+                            onChange={e => updateSlot({ ...slot, label: e.target.value })}
+                            className="rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {selectedDates.length < MAX_DATE_SLOTS && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedDates([...selectedDates, makeSlot(nextWeekday(5, 19, 30))])}
                       className="w-full rounded-xl border-dashed">
                       + Ajouter un créneau
                     </Button>

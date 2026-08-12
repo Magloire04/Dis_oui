@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { resolveTheme, MENU_OPTIONS_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
+import { normalizeDateSlots, slotStartsAt, type DateSlot } from "@shared/invitationConfig";
+import { buildRendezVousIcs } from "@shared/ics";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,8 +37,7 @@ export default function RecipientFunnel() {
   const [noBtnPos, setNoBtnPos] = useState<{ x: number; y: number } | null>(null);
 
   // Response choices
-  const [selectedDay, setSelectedDay] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState<DateSlot | null>(null);
   const [selectedMenu, setSelectedMenu] = useState("");
   const [customVenue, setCustomVenue] = useState("");
   const [customNote, setCustomNote] = useState("");
@@ -61,6 +64,24 @@ export default function RecipientFunnel() {
 
   const config = invitation.config as any;
   const theme = resolveTheme(config.themeKey);
+  // Tolère les invitations créées avant les créneaux datés, dont
+  // `selectedDates` n'est qu'un tableau de chaînes.
+  const slots = normalizeDateSlots(config.selectedDates);
+
+  // Le même générateur RFC 5545 que celui du serveur : le fichier téléchargé
+  // ici et celui joint à l'e-mail sont identiques.
+  const calendarFile = selectedSlot
+    ? buildRendezVousIcs({
+        senderName: config.senderName,
+        recipientName: config.recipientName,
+        startsAt: slotStartsAt(selectedSlot),
+        durationMinutes: selectedSlot.durationMin,
+        slotLabel: selectedSlot.label,
+        menu: selectedMenu,
+        venue: customVenue,
+        note: customNote,
+      })
+    : null;
 
   // Handle fleeing "No" button
   const handleNoInteraction = (e: any) => {
@@ -85,12 +106,24 @@ export default function RecipientFunnel() {
   };
 
   const handleFinalSubmit = () => {
+    if (!selectedSlot) {
+      toast.error("Choisis d'abord un créneau.");
+      setScreen(3);
+      return;
+    }
+
+    const startsAt = slotStartsAt(selectedSlot);
+
     respondMutation.mutate({
       slug,
       answer: {
-        day: selectedDay || config.selectedDates?.[0] || "Premier créneau",
-        time: selectedTime || "19h30",
-        menu: selectedMenu || "Menu standard",
+        day: selectedSlot.label,
+        // L'heure était jusqu'ici figée à « 19h30 » : `selectedTime` existait
+        // mais n'était jamais renseigné. Elle vient maintenant du créneau.
+        time: startsAt ? format(new Date(startsAt), "HH'h'mm", { locale: fr }) : "",
+        startsAt,
+        durationMin: selectedSlot.durationMin,
+        menu: selectedMenu,
         venue: customVenue,
         customNote,
         refusCount,
@@ -199,25 +232,42 @@ export default function RecipientFunnel() {
               <p className="text-xs text-stone-600">Choisis ton créneau préféré pour notre rendez-vous.</p>
             </div>
 
-            <div className="space-y-3">
-              {(config.selectedDates || ["Ce vendredi à 19h30", "Ce samedi à 20h00"]).map((dateStr: string, idx: number) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedDay(dateStr)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                    selectedDay === dateStr ? "border-rose-500 bg-rose-50 font-bold text-rose-900 shadow-sm" : "border-stone-200 text-stone-700 hover:bg-stone-50"
-                  }`}
-                >
-                  <span className="text-sm">{dateStr}</span>
-                  <Calendar className="w-4 h-4 text-rose-500" />
-                </div>
-              ))}
+            <div className="space-y-3" role="radiogroup" aria-label="Créneaux proposés">
+              {slots.map(slot => {
+                const isSelected = selectedSlot?.id === slot.id;
+                const startsAt = slotStartsAt(slot);
+                return (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "border-rose-500 bg-rose-50 font-bold text-rose-900 shadow-sm"
+                        : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                    }`}
+                  >
+                    <span>
+                      <span className="text-sm block">{slot.label}</span>
+                      {startsAt && (
+                        <span className="text-[11px] font-normal text-stone-500">
+                          {format(new Date(startsAt), "d MMMM yyyy 'à' HH'h'mm", { locale: fr })}
+                        </span>
+                      )}
+                    </span>
+                    <Calendar className="w-4 h-4 text-rose-500 shrink-0" />
+                  </button>
+                );
+              })}
             </div>
 
-            <Button 
+            <Button
               onClick={() => setScreen(4)}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl">
-              Étape suivante : Le menu 🍽️
+              disabled={!selectedSlot}
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-2xl py-4 font-bold text-base shadow-xl disabled:opacity-40">
+              {selectedSlot ? "Étape suivante : Le menu 🍽️" : "Choisis un créneau pour continuer"}
             </Button>
           </Card>
         )}
@@ -295,7 +345,13 @@ export default function RecipientFunnel() {
             </div>
 
             <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 text-left space-y-2 text-xs text-stone-700">
-              <p><span className="font-bold">Créneau :</span> {selectedDay || config.selectedDates?.[0]}</p>
+              <p><span className="font-bold">Créneau :</span> {selectedSlot?.label}</p>
+              {selectedSlot && slotStartsAt(selectedSlot) && (
+                <p>
+                  <span className="font-bold">Date :</span>{" "}
+                  {format(new Date(slotStartsAt(selectedSlot)!), "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr })}
+                </p>
+              )}
               <p><span className="font-bold">Menu :</span> {selectedMenu || "Au choix"}</p>
               {customVenue && <p><span className="font-bold">Lieu :</span> {customVenue}</p>}
               {customNote && <p><span className="font-bold">Note :</span> « {customNote} »</p>}
@@ -305,20 +361,26 @@ export default function RecipientFunnel() {
               {config.finalMessage || "Prépare ton plus beau sourire !"}
             </p>
 
-            <Button 
-              onClick={() => {
-                const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nSUMMARY:Rendez-vous ${config.senderName} & ${config.recipientName}\nDESCRIPTION:Menu: ${selectedMenu}\nEND:VCALENDAR`;
-                const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'rendez-vous.ics';
-                a.click();
-                toast.success("Fichier .ics téléchargé avec succès !");
-              }}
-              className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-2xl py-3 font-semibold text-xs flex items-center justify-center gap-2">
-              <Download className="w-4 h-4" /> Ajouter au calendrier (.ics)
-            </Button>
+            {calendarFile ? (
+              <Button
+                onClick={() => {
+                  const blob = new Blob([calendarFile], { type: "text/calendar;charset=utf-8" });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "rendez-vous.ics";
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  toast.success("Fichier .ics téléchargé !");
+                }}
+                className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-2xl py-3 font-semibold text-xs flex items-center justify-center gap-2">
+                <Download className="w-4 h-4" /> Ajouter au calendrier (.ics)
+              </Button>
+            ) : (
+              <p className="text-[11px] text-stone-400">
+                Ce créneau n'a pas de date précise : aucun fichier calendrier n'est disponible.
+              </p>
+            )}
           </Card>
         )}
 
