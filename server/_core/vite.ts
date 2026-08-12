@@ -14,8 +14,13 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
+  // vite.config.ts exporte désormais une fonction de `mode`, pour n'activer
+  // l'outillage Manus qu'en développement : il faut la résoudre avant de
+  // fusionner la configuration.
+  const resolvedConfig = viteConfig({ command: "serve", mode: "development" });
+
   const vite = await createViteServer({
-    ...viteConfig,
+    ...resolvedConfig,
     configFile: false,
     server: serverOptions,
     appType: "custom",

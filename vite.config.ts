@@ -150,10 +150,30 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+/**
+ * Outillage de développement issu du gabarit Manus.
+ *
+ * Ces plugins étaient actifs jusque dans le build de production, où
+ * `vite-plugin-manus-runtime` inlinait 367 Ko de script dans index.html — soit
+ * 99 % du poids du fichier, réémis à chaque chargement puisque non
+ * cacheable, et de l'instrumentation tierce sur des pages qui manipulent des
+ * données personnelles.
+ *
+ * Ils restent disponibles en développement (aperçu Manus, collecte de logs
+ * navigateur) et disparaissent du bundle publié.
+ */
+const developmentOnlyPlugins = [
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+];
 
-export default defineConfig({
-  plugins,
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    react(),
+    tailwindcss(),
+    ...(mode === "production" ? [] : developmentOnlyPlugins),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -184,4 +204,4 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
-});
+}));
