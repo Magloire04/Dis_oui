@@ -1,112 +1,210 @@
-# Dis oui
+<div align="center">
 
-Générateur d'invitations de rendez-vous interactives. Le créateur compose une
-invitation en six étapes, partage un lien, et reçoit la réponse par e-mail avec
-un fichier calendrier. Aucun compte n'est nécessaire.
+# 💌 Dis oui
+
+**Transformez une demande de rendez-vous en petit moment de suspense.**
+
+Le créateur compose une invitation en six étapes, partage un lien,
+et reçoit la réponse par e-mail avec un fichier calendrier prêt à ouvrir.
+Aucun compte, aucun mot de passe.
+
+<img src="docs/images/accueil.png" alt="Page d'accueil de Dis oui" width="820">
+
+</div>
+
+---
+
+## Comment ça marche
+
+```text
+   Créateur                        Destinataire                    Créateur
+      │                                  │                             │
+  ┌───┴────┐   lien /r/xxxx   ┌──────────┴─────────┐   e-mail   ┌──────┴──────┐
+  │ Éditeur│ ───────────────► │ Enveloppe, question│ ─────────► │ Suivi privé │
+  │6 étapes│                  │ créneaux, menu     │  + .ics    │ /track/yyyy │
+  └────────┘                  └────────────────────┘            └─────────────┘
+```
+
+1. **Personnaliser** — prénoms, ton, question, créneaux datés, menu, thème.
+2. **Partager** — un lien unique, ou son QR code, par WhatsApp ou SMS.
+3. **Recevoir** — la réponse arrive par e-mail, fichier `.ics` en pièce jointe.
+
+---
+
+## Ce que ça fait
+
+| | |
+|---|---|
+| **Bouton « Non » taquin** | il fuit le curseur, rétrécit à chaque clic, ou les deux — puis rend les armes en laissant une vraie porte de sortie |
+| **Six thèmes** | Blush, Minuit, Agrume, Forêt, Sépia, Néon — chacun habille les six écrans, pas seulement le fond |
+| **Créneaux datés** | le libellé garde la formulation libre (« vendredi soir »), la date réelle alimente le fichier calendrier |
+| **Fichier `.ics` valide** | conforme RFC 5545, généré par le même code côté client et côté serveur |
+| **Aperçus de partage neutres** | coller le lien affiche « Quelqu'un t'a envoyé quelque chose 👀 », jamais le contenu |
+| **Suppression automatique** | à l'échéance choisie, l'invitation et sa réponse disparaissent de la base |
+| **Accessible** | parcours clavier, `aria-live` sur les taquineries, respect de `prefers-reduced-motion` |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/editeur.png" alt="Éditeur en six étapes avec aperçu live"><br><em>L'éditeur et son aperçu en temps réel</em></td>
+<td width="50%"><img src="docs/images/suivi.png" alt="Page de suivi privée du créateur"><br><em>La page de suivi privée</em></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><img src="docs/images/funnel-question.png" alt="Le funnel destinataire, thème Minuit" width="620"><br><em>Le funnel destinataire — thème Minuit, bouton « Non » en fuite</em></td>
+</tr>
+</table>
+
+---
+
+## Stack
+
+React 19 · TypeScript · Vite 7 · Tailwind v4 · shadcn/ui
+tRPC v11 · Express 4 · Drizzle ORM · MySQL 8 · Vitest
+
+Un seul process Express sert l'API et le client : Vite en middleware en
+développement, fichiers statiques en production.
+
+```text
+navigateur ──► /api/trpc ──► Express ──► appRouter ──► invitationsDb ──► MySQL
+                                             │
+                                             └──► emailService ──► Resend
+```
 
 ---
 
 ## Démarrage
 
-Prérequis : Node 20+, pnpm, un serveur MySQL 8.
+Prérequis : **Node 20+**, **pnpm**, **MySQL 8**.
 
 ```bash
+git clone https://github.com/Magloire04/dit_oui.git
+cd dit_oui
 pnpm install
-cp .env.example .env          # puis renseigner les valeurs
+cp .env.example .env
 ```
 
-Créer les deux bases (la seconde sert aux tests, qui tronquent leurs tables) :
+Créer les deux bases — la seconde sert aux tests, qui tronquent leurs tables :
 
 ```sql
 CREATE DATABASE dis_oui      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE dis_oui_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Puis appliquer les migrations et lancer le serveur :
+Renseigner `.env` — au minimum `DATABASE_URL`, `JWT_SECRET` et `IP_HASH_SALT` :
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+Puis appliquer les migrations et démarrer :
 
 ```bash
 pnpm exec drizzle-kit migrate
-pnpm dev                      # http://localhost:3000
+pnpm dev        # http://localhost:3000
 ```
 
-> **MySQL et le moteur de stockage.** Les clés étrangères exigent InnoDB. Si le
-> serveur est configuré avec `default_storage_engine=MYISAM` (le défaut de
-> WAMP), MySQL ignore *silencieusement* les contraintes déclarées. La migration
-> `0003` convertit les tables en InnoDB, ce qui rend l'installation portable ;
-> il n'y a donc rien à modifier dans `my.ini`.
+Sans `RESEND_API_KEY`, l'e-mail est affiché dans la console : **rien à
+configurer pour développer en local.**
+
+> [!IMPORTANT]
+> **MySQL doit utiliser InnoDB.** Les clés étrangères en dépendent, et si le
+> serveur est réglé sur `default_storage_engine=MYISAM` — le défaut de WAMP —
+> MySQL ignore *silencieusement* les contraintes déclarées. La migration `0003`
+> convertit les tables, il n'y a donc rien à modifier dans `my.ini`.
 
 ### Commandes
 
 | Commande | Rôle |
 |---|---|
-| `pnpm dev` | serveur de développement (API + client, un seul process) |
+| `pnpm dev` | serveur de développement, API et client |
 | `pnpm check` | vérification TypeScript, tests inclus |
-| `pnpm test` | suite Vitest sur la base `_test` |
-| `pnpm build` | bundle client dans `dist/public`, serveur dans `dist` |
+| `pnpm test` | 69 tests Vitest sur la base `_test` |
+| `pnpm build` | client dans `dist/public`, serveur dans `dist` |
 | `pnpm start` | exécution du build de production |
-| `pnpm exec drizzle-kit generate` | génère une migration depuis `drizzle/schema.ts` |
+| `pnpm exec drizzle-kit generate` | migration depuis `drizzle/schema.ts` |
 
 ---
 
-## Architecture
-
-Un unique process Express sert l'API et le client : Vite en middleware en
-développement, fichiers statiques en production.
-
-```
-navigateur ──► /api/trpc ──► Express ──► appRouter ──► invitationsDb ──► MySQL
-                                              │
-                                              └──► emailService ──► Resend
-```
+## Organisation du code
 
 | Chemin | Contenu |
 |---|---|
-| `client/src/pages/` | les six pages : accueil, éditeur, funnel destinataire, suivi, mentions légales, confidentialité |
-| `client/src/lib/themes.ts` | les six thèmes visuels et leurs jetons de style |
+| `client/src/pages/` | accueil, éditeur, funnel destinataire, suivi, pages légales |
+| `client/src/lib/themes.ts` | les six thèmes et leurs jetons de style |
 | `server/invitationsRouter.ts` | les cinq procédures tRPC |
 | `server/invitationsDb.ts` | accès données, rate limiting, purge |
 | `server/emailService.ts` | notification du créateur via Resend |
 | `server/purge.ts` | suppression périodique des données expirées |
 | `server/socialMeta.ts` | aperçus de partage neutres sur les liens privés |
-| `shared/invitationConfig.ts` | schéma Zod partagé client/serveur |
+| `shared/invitationConfig.ts` | schéma Zod partagé client / serveur |
 | `shared/ics.ts` | génération iCalendar (RFC 5545) |
-| `server/_core/`, `shared/_core/` | socle du gabarit Manus (OAuth, stockage, LLM…), largement inutilisé ici |
+| `server/_core/`, `shared/_core/` | socle du gabarit d'origine (OAuth, stockage, LLM), peu utilisé ici |
 
-### Points de conception à connaître
+### Base de données
 
-- **Les créneaux portent une date réelle.** `selectedDates` est un tableau de
-  `{ id, label, startsAt, durationMin }` : le `label` garde la formulation
-  libre affichée au destinataire, `startsAt` rend le fichier `.ics` possible.
-  Les invitations créées avant cette évolution ne stockent que des chaînes ;
-  `normalizeDateSlots()` les lit sans erreur, mais sans date exploitable aucun
-  fichier calendrier n'est proposé.
-- **Le même générateur `.ics` sert au client et au serveur** (`shared/ics.ts`),
-  pour que le fichier téléchargé et celui joint à l'e-mail soient identiques.
-- **Sans `RESEND_API_KEY`, l'e-mail est affiché en console.** Le développement
-  local ne demande aucun compte. Un échec d'envoi ne fait jamais échouer la
-  réponse du destinataire, qui est déjà enregistrée.
-- **Les classes Tailwind ne doivent jamais être composées à l'exécution.**
-  Tailwind analyse le code source : une classe formée par
-  `` `${theme.accentColor}/15` `` ou `` `scale-${n}` `` n'existe pas dans le CSS
-  généré. Les jetons de `ThemeConfig` sont donc écrits en toutes lettres.
-- **Les données personnelles sont purgées automatiquement.** À l'échéance
-  choisie (7, 30 ou 90 jours), l'invitation et sa réponse sont supprimées ;
-  la clé étrangère `ON DELETE CASCADE` garantit qu'aucune réponse ne survit.
+```text
+invitations ──1─────n──► responses        (ON DELETE CASCADE)
+   slug, creatorToken       answer (json)
+   config (json)
+   expiresAt, openedAt
+   ipHash
+
+rateLimits    index (ipHash, actionType, timestamp)
+```
 
 ---
 
-## Reste à faire avant une mise en ligne publique
+## Quatre choses à savoir avant de contribuer
+
+**Ne jamais composer une classe Tailwind à l'exécution.** Tailwind analyse le
+code source : `` `scale-${n}` `` ou `` `${theme.accentColor}/15` `` n'existent
+pas dans le CSS généré et ne produisent rien. Les jetons de `ThemeConfig` sont
+donc écrits en toutes lettres.
+
+**Les créneaux ont deux faces.** `label` porte la formulation libre affichée au
+destinataire, `startsAt` la date réelle sans laquelle aucun `.ics` n'est
+possible. Les invitations antérieures à ce modèle ne stockent que des chaînes ;
+`normalizeDateSlots()` les lit sans erreur, mais ne propose alors aucun fichier
+calendrier.
+
+**Une réponse de destinataire est irremplaçable.** Elle est enregistrée avant
+toute tentative d'envoi, et `sendCreatorNotification` ne lève jamais : une
+panne de Resend renvoie `emailSent: false` sans faire échouer la mutation.
+
+**Le schéma de configuration est partagé.** `shared/invitationConfig.ts` sert à
+la fois à valider côté serveur et à contrôler le formulaire avant envoi. Y
+ajouter un champ suffit à le voir refusé partout où il est mal formé.
+
+---
+
+## Avant une mise en ligne publique
 
 - [ ] Renseigner les mentions légales (`client/src/pages/MentionsLegales.tsx`) :
-      identité de l'éditeur et de l'hébergeur, obligatoires et signalées en
-      jaune dans la page.
+      identité de l'éditeur et de l'hébergeur, obligatoires, signalées en jaune
+      dans la page.
 - [ ] Créer un compte Resend, vérifier un domaine d'envoi, renseigner
       `RESEND_API_KEY` et `RESEND_FROM`.
-- [ ] Renseigner `PUBLIC_BASE_URL` avec le domaine réel (il alimente les liens
-      des e-mails).
-- [ ] Choisir l'hébergement et provisionner une base MySQL de production.
-- [ ] Générer des secrets `JWT_SECRET` et `IP_HASH_SALT` distincts de ceux du
-      développement. `IP_HASH_SALT` est obligatoire en production : sans sel,
-      un hachage d'IPv4 se force brute en quelques minutes.
+- [ ] Renseigner `PUBLIC_BASE_URL` avec le domaine réel : il alimente les liens
+      des e-mails.
+- [ ] Provisionner une base MySQL de production.
+- [ ] Générer des `JWT_SECRET` et `IP_HASH_SALT` distincts de ceux du
+      développement. `IP_HASH_SALT` est **obligatoire** en production : sans
+      sel, un hachage d'IPv4 se force brute en quelques minutes.
 - [ ] Le bundle client dépasse 500 Ko : envisager un découpage par route si le
-      temps de chargement pose problème.
+      chargement pose problème.
+
+---
+
+## Vie privée
+
+Le service ne dépose ni cookie publicitaire, ni traceur tiers. Sont conservés
+l'e-mail du créateur, le contenu de l'invitation, la réponse du destinataire, et
+une empreinte irréversible de l'adresse IP du créateur — jamais l'adresse
+elle-même. Tout est supprimé à l'échéance choisie (7, 30 ou 90 jours) par une
+tâche horaire ; les empreintes d'IP au bout de 24 heures. Le détail figure sur
+la page `/confidentialite` de l'application.
+
+---
+
+## Licence
+
+MIT

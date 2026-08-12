@@ -43,7 +43,8 @@ export default function Home() {
       <section className="relative overflow-hidden px-6 pt-16 pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-100/80 border border-rose-200 text-rose-800 text-xs font-semibold tracking-wide uppercase">
-            <Sparkles className="w-3.5 h-3.5" /> Expérience interactive & animée 3D
+            {/* « animée 3D » retiré : il n'y a aucune 3D dans le projet. */}
+            <Sparkles className="w-3.5 h-3.5" /> Expérience interactive & animée
           </div>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.1] text-stone-900">
             Transformez votre demande de rendez-vous en <span className="bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">moment magique</span>.
@@ -58,7 +59,10 @@ export default function Home() {
               Créer un rendez-vous <ArrowRight className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-2 text-sm text-stone-500">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Gratuit • Sans inscription • 100% sécurisé
+              {/* « 100 % sécurisé » ne veut rien dire et ne s'appuie sur
+                  aucun audit ; on annonce ce qui est vérifiable dans le code. */}
+              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Gratuit • Sans inscription • Données supprimées à
+              l'expiration
             </div>
           </div>
           
