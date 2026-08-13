@@ -218,7 +218,20 @@ export async function dernieresInvitations(limit = 25): Promise<LigneInvitation[
       creeLe: invitations.createdAt,
       expireLe: invitations.expiresAt,
       ouverteLe: invitations.openedAt,
-      reponses: sql<number>`(select count(*) from responses r where r.invitationId = ${invitations.id})`,
+      /**
+       * La colonne de corrélation est qualifiée explicitement.
+       *
+       * Interpoler `${invitations.id}` ne suffit pas : quand la requête ne
+       * porte que sur une table, drizzle rend la colonne sans préfixe, soit
+       * un simple `` `id` ``. Dans la sous-requête, ce nom est alors résolu
+       * dans la portée de `responses`, qui possède elle aussi un `id` : la
+       * condition comparait `responses.invitationId` à `responses.id`, deux
+       * colonnes de la même ligne, et le compte valait toujours zéro.
+       */
+      reponses: sql<number>`(
+        select count(*) from responses r
+        where r.invitationId = ${sql.identifier("invitations")}.${sql.identifier("id")}
+      )`,
     })
     .from(invitations)
     .orderBy(desc(invitations.createdAt))
