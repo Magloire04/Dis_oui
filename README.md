@@ -235,6 +235,41 @@ Deux partis pris à connaître avant d'y toucher :
 
 ---
 
+## Déploiement
+
+En production sur **[disoui.bytechnum.com](https://disoui.bytechnum.com)**, sur un
+hébergement mutualisé cPanel : Node 24 derrière Passenger, MariaDB 11.4.
+
+```bash
+pnpm build                       # génère aussi dist/package.json
+# téléverser dist/, drizzle/, scripts/ et dist/package.json vers ~/apps/disoui
+npm install --omit=dev           # dans l'environnement Node de l'application
+node scripts/migrate.mjs         # applique les migrations
+cloudlinux-selector restart --interpreter nodejs --app-root apps/disoui
+```
+
+Quatre contraintes de cet hébergement, toutes déjà traitées dans le code :
+
+- **Passenger impose le port d'écoute.** La recherche de port libre ne sert
+  qu'au développement local ; sur le serveur, l'application écoute exactement
+  sur `PORT`, faute de quoi Passenger ne la trouve pas.
+- **Passenger arrête l'application au repos**, donc le minuteur de purge ne
+  tourne que s'il y a du trafic. Un cron horaire appelle
+  `POST /api/cron/purge` avec l'en-tête `X-Cron-Token`.
+- **Le serveur web rejette les POST sans corps** avec un 403 qui n'atteint
+  jamais Node. La commande cron envoie donc `-d '{}'` : sans ce corps, la purge
+  échouerait en silence.
+- **Le plan ne fournit pas de boîte e-mail** mais expose `/usr/sbin/sendmail`,
+  et le SPF publié pour le domaine autorise déjà ce serveur.
+  `MAIL_TRANSPORT=sendmail` suffit, sans compte ni service tiers.
+
+`dist/package.json` est généré par `scripts/package-production.mjs` à partir des
+imports réels du bundle : le `package.json` du dépôt contient tout le nécessaire
+du client, inutile sur le serveur, et une de ses dépendances de développement
+provoque un conflit de résolution avec npm.
+
+---
+
 ## Avant une mise en ligne publique
 
 - [ ] Compléter les mentions légales (`client/src/pages/MentionsLegales.tsx`) :
