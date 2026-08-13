@@ -24,6 +24,7 @@ import {
 } from "./adminDb";
 import { countEventsSince, lastEvent, recentEvents } from "./operationLog";
 import { resume as resumeMetriques } from "./metrics";
+import { verifierTransport } from "./mailTransport";
 import { checkLoginAttempt, hashIp } from "./invitationsDb";
 import { runPurge } from "./purge";
 
@@ -96,7 +97,7 @@ export const adminRouter = router({
     const depuis24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const depuis7j = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [base, evenements24h, evenements7j, dernierePurge, dernierEchecEmail, echecsEmail] =
+    const [base, evenements24h, evenements7j, dernierePurge, dernierEchecEmail, echecsEmail, courriel] =
       await Promise.all([
         pingBase(),
         countEventsSince(depuis24h),
@@ -104,6 +105,7 @@ export const adminRouter = router({
         lastEvent("purge", "ok"),
         lastEvent("email", "error"),
         recentEvents("email", 10),
+        verifierTransport(),
       ]);
 
     return {
@@ -113,9 +115,10 @@ export const adminRouter = router({
       dernierePurge,
       dernierEchecEmail,
       echecsEmail: echecsEmail.filter(e => e.outcome === "error"),
-      // Sans clé Resend, l'envoi est simulé : l'afficher évite de croire à une
-      // panne devant un compteur d'envois à zéro.
-      envoiReel: Boolean(process.env.RESEND_API_KEY),
+      // Sans transport configuré, l'envoi est simulé : l'afficher évite de
+      // croire à une panne devant un compteur d'envois à zéro.
+      courriel,
+      envoiReel: courriel.transport !== "console" && courriel.ok,
     };
   }),
 

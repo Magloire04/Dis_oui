@@ -221,7 +221,11 @@ function OngletSante() {
             Base de données{data.base.latenceMs !== null ? ` · ${data.base.latenceMs} ms` : ""}
           </Pastille>
           <Pastille ok={data.envoiReel}>
-            {data.envoiReel ? "Envoi d'e-mails actif" : "E-mails simulés (pas de clé Resend)"}
+            {data.envoiReel
+              ? `Envoi d'e-mails actif (${data.courriel.transport})`
+              : data.courriel.transport === "console"
+                ? "E-mails simulés (aucun transport configuré)"
+                : `Transport ${data.courriel.transport} injoignable`}
           </Pastille>
           <Pastille ok={Boolean(data.dernierePurge)}>
             {data.dernierePurge ? `Purge : ${dateHeure(data.dernierePurge.createdAt)}` : "Purge jamais exécutée"}

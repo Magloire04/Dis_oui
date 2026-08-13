@@ -1,5 +1,6 @@
 import { ENV } from "./_core/env";
 import { logEvent } from "./operationLog";
+import { envoyerCourriel, transportActif } from "./mailTransport";
 import { buildRendezVousIcs } from "@shared/ics";
 import type { InvitationAnswer, ThemeId } from "@shared/invitationConfig";
 
@@ -177,10 +178,11 @@ export async function sendCreatorNotification(
   const hasCalendarFile = icsContent !== null;
   const subject = `${options.recipientName} a dit oui !`;
   const html = buildHtml(options, hasCalendarFile);
+  const transport = transportActif();
 
-  if (!ENV.resendApiKey) {
+  if (transport === "console") {
     console.info(
-      `[Email] RESEND_API_KEY absent — envoi simulé.\n` +
+      `[Email] Aucun transport configuré — envoi simulé.\n` +
         `  Destinataire : ${options.toEmail}\n` +
         `  Objet        : ${subject}\n` +
         `  Créneau      : ${options.answerDetails.day}\n` +
@@ -189,11 +191,18 @@ export async function sendCreatorNotification(
     return { sent: false, hasCalendarFile };
   }
 
-  const sent = await sendViaResend({ to: options.toEmail, subject, html, icsContent });
+  const sent =
+    transport === "resend"
+      ? await sendViaResend({ to: options.toEmail, subject, html, icsContent })
+      : await envoyerCourriel({ to: options.toEmail, subject, html, icsContent });
 
   // Journalisé sans l'adresse : la console doit signaler qu'un envoi a échoué,
   // pas conserver à qui il était destiné.
-  await logEvent("email", sent ? "ok" : "error", { hasCalendarFile, theme: options.theme });
+  await logEvent("email", sent ? "ok" : "error", {
+    hasCalendarFile,
+    theme: options.theme,
+    transport,
+  });
 
   return { sent, hasCalendarFile };
 }

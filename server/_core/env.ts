@@ -13,6 +13,17 @@ export const ENV = {
   ipHashSalt: process.env.IP_HASH_SALT ?? "",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   resendFrom: process.env.RESEND_FROM ?? "Dis oui <onboarding@resend.dev>",
+
+  // --- Courriel -------------------------------------------------------------
+  // `smtp` dès qu'un hôte est renseigné, sinon `sendmail` si demandé
+  // explicitement, sinon Resend, sinon affichage en console.
+  mailTransport: process.env.MAIL_TRANSPORT ?? "",
+  mailFrom: process.env.MAIL_FROM ?? "Dis oui <no-reply@localhost>",
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: Number(process.env.SMTP_PORT ?? 465),
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPassword: process.env.SMTP_PASSWORD ?? "",
+  sendmailPath: process.env.SENDMAIL_PATH ?? "/usr/sbin/sendmail",
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3000",
   // Mot de passe unique du tableau de bord d'administration. Vide, la console
   // est purement et simplement inaccessible — c'est le comportement voulu tant

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sendCreatorNotification, type CreatorNotification } from "./emailService";
 import { ENV } from "./_core/env";
+import { reinitialiserTransport, transportActif } from "./mailTransport";
 import type { InvitationAnswer } from "@shared/invitationConfig";
 
 const answer: InvitationAnswer = {
@@ -24,10 +25,40 @@ const notification: CreatorNotification = {
 };
 
 const originalKey = ENV.resendApiKey;
+const originalSmtpHost = ENV.smtpHost;
+const originalMailTransport = ENV.mailTransport;
 
 afterEach(() => {
   ENV.resendApiKey = originalKey;
+  ENV.smtpHost = originalSmtpHost;
+  ENV.mailTransport = originalMailTransport;
+  reinitialiserTransport();
   vi.restoreAllMocks();
+});
+
+describe("choix du transport", () => {
+  it("privilégie SMTP dès qu'un hôte est renseigné", () => {
+    ENV.smtpHost = "smtp.exemple.fr";
+    ENV.resendApiKey = "re_test";
+    expect(transportActif()).toBe("smtp");
+  });
+
+  it("retient sendmail quand il est demandé et qu'aucun SMTP n'est configuré", () => {
+    ENV.smtpHost = "";
+    ENV.mailTransport = "sendmail";
+    ENV.resendApiKey = "re_test";
+    expect(transportActif()).toBe("sendmail");
+  });
+
+  it("retombe sur Resend, puis sur la console", () => {
+    ENV.smtpHost = "";
+    ENV.mailTransport = "";
+    ENV.resendApiKey = "re_test";
+    expect(transportActif()).toBe("resend");
+
+    ENV.resendApiKey = "";
+    expect(transportActif()).toBe("console");
+  });
 });
 
 describe("sans clé Resend", () => {
