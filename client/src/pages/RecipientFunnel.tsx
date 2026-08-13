@@ -23,9 +23,13 @@ export default function RecipientFunnel() {
   });
 
   const respondMutation = trpc.invitations.respond.useMutation({
-    onSuccess: () => {
+    onSuccess: data => {
+      // `emailSent` dit si la notification est réellement partie. L'écran de
+      // confirmation s'en sert : la réponse est toujours enregistrée, la
+      // notification ne l'est pas toujours.
+      setEmailEnvoye(data.emailSent);
       setScreen(5); // Ticket screen
-      toast.success("Votre réponse a été transmise avec succès !");
+      toast.success("Ta réponse est enregistrée !");
     },
     onError: (err) => {
       toast.error(err.message || "Erreur lors de l'envoi de la réponse.");
@@ -37,6 +41,7 @@ export default function RecipientFunnel() {
   const [noBtnPos, setNoBtnPos] = useState<{ x: number; y: number } | null>(null);
 
   // Response choices
+  const [emailEnvoye, setEmailEnvoye] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<DateSlot | null>(null);
   const [selectedMenu, setSelectedMenu] = useState("");
   const [customVenue, setCustomVenue] = useState("");
@@ -416,8 +421,14 @@ export default function RecipientFunnel() {
             </div>
             <div className="space-y-2">
               <h2 className="text-3xl font-extrabold">C'est un grand OUI !</h2>
+              {/* La réponse est enregistrée avant toute tentative d'envoi, et
+                  l'envoi peut échouer. Affirmer sans condition que le message
+                  est arrivé mentait au destinataire dès que la notification
+                  ne partait pas. */}
               <p className={`text-xs ${theme.mutedText}`}>
-                {config.senderName} a reçu ta réponse.
+                {emailEnvoye
+                  ? `${config.senderName} a reçu ta réponse par e-mail.`
+                  : `Ta réponse est bien enregistrée. ${config.senderName} la retrouvera sur son lien de suivi.`}
               </p>
             </div>
 
