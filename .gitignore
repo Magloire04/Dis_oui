@@ -13,6 +13,10 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+# Coordonnées du serveur de production, lues par scripts/deploy.sh.
+# Le dépôt est public : ni l'utilisateur SSH, ni l'adresse, ni le port n'y ont
+# leur place. Voir .env.deploy.example.
+.env.deploy
 
 # IDE and editor files
 .vscode/
