@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { startPurgeSchedule } from "../purge";
+import { registerCronRoutes } from "../cronRoutes";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -37,6 +38,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  registerCronRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -52,19 +54,34 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
-
   // Purge RGPD des invitations expirées : la durée de vie annoncée à la
   // création doit être tenue sans intervention manuelle.
   startPurgeSchedule();
 
+  /**
+   * Sous Passenger — l'hébergement mutualisé cPanel — le serveur d'application
+   * impose l'adresse d'écoute et attend le processus exactement dessus. La
+   * recherche de port libre ci-dessous ferait écouter ailleurs, et Passenger
+   * ne trouverait jamais l'application : elle ne sert que le développement
+   * local, où le port 3000 peut être déjà pris.
+   */
+  const sousPassenger = Boolean(process.env.PASSENGER_BASE_URI || process.env.IN_PASSENGER);
+
+  if (sousPassenger || process.env.PORT) {
+    const port = Number(process.env.PORT) || 3000;
+    server.listen(port, () => {
+      console.log(`Serveur démarré sur le port ${port}`);
+    });
+    return;
+  }
+
+  const preferredPort = 3000;
+  const port = await findAvailablePort(preferredPort);
+  if (port !== preferredPort) {
+    console.log(`Le port ${preferredPort} est occupé, utilisation du port ${port}.`);
+  }
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    console.log(`Serveur démarré sur http://localhost:${port}/`);
   });
 }
 

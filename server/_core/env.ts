@@ -18,4 +18,8 @@ export const ENV = {
   // est purement et simplement inaccessible — c'est le comportement voulu tant
   // qu'aucun mot de passe n'a été choisi.
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
+  // Jeton de la route de purge appelée par le cron. Distinct du mot de passe
+  // d'administration : il transite dans une ligne de crontab, donc dans un
+  // fichier lisible sur le serveur.
+  cronToken: process.env.CRON_TOKEN ?? "",
 };
