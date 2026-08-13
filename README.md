@@ -270,6 +270,59 @@ provoque un conflit de résolution avec npm.
 
 ---
 
+## Contribuer
+
+Le dépôt suit le Gitflow et les conventions de commit enseignés à l'ASIN.
+
+| Branche | Rôle |
+|---|---|
+| `main` | **production** — protégée, aucun commit direct, merge par PR uniquement |
+| `develop` | **intégration** — protégée, tout converge ici avant release |
+| `feature/*` | nouvelle fonctionnalité, part de `develop`, PR vers `develop` |
+| `bugfix/*` | correctif non urgent, part de `develop`, PR vers `develop` |
+| `hotfix/*` | correctif urgent, part de `main`, PR vers `main` **et** `develop` |
+| `release/*` | stabilisation avant production, PR vers `main` **et** `develop` |
+
+**Nommage :** `type/BT-{numéro}-{description-en-kebab-case}`, en minuscules, où le
+numéro est celui de l'issue GitHub. Exemple : `bugfix/BT-1-retirer-bouton-test`.
+
+**Commits :** `type(scope): description`, en minuscules, sans point final,
+72 caractères maximum. Types : `feat`, `fix`, `docs`, `refactor`, `chore`,
+`test`, `style`, `perf`. Un `!` après le type signale une rupture de
+compatibilité.
+
+```bash
+git checkout develop && git pull origin develop
+git checkout -b feature/BT-12-ma-fonctionnalite
+# … commits atomiques …
+git push -u origin feature/BT-12-ma-fonctionnalite
+gh pr create --base develop
+```
+
+**Avant d'ouvrir une PR :** `pnpm check` et `pnpm test` au vert, aucun secret
+exposé, aucun `console.log` oublié, diff sous 400 lignes ou justifié,
+description renseignée (objectif, changements, tests, checklist).
+
+### Deux écarts assumés à la convention
+
+La règle est que *tout écart documenté est une décision, et tout silence une
+dette*. Ces deux-là sont donc consignés ici.
+
+**Le préfixe des branches est `BT-`, non `ASIN-`.** La convention impose un
+numéro de ticket pour assurer la traçabilité avec le backlog. Ce projet est
+publié sous ByTechnum et n'a pas de backlog ASIN : porter ce préfixe
+renverrait vers un suivi qui ne contient pas ces tickets. Les issues GitHub du
+dépôt tiennent lieu de backlog, et l'exigence de traçabilité est respectée.
+
+**Aucune approbation n'est exigée avant merge.** La convention demande au moins
+une approbation explicite et interdit de merger sa propre PR. Le dépôt n'a
+qu'un contributeur, et GitHub interdit d'approuver sa propre PR : l'exiger
+bloquerait tout merge. La protection est donc réglée à zéro approbation, la PR
+restant obligatoire — le diff est relu et la checklist remplie avant merge.
+**À revoir dès qu'un second contributeur rejoint le projet.**
+
+---
+
 ## Avant une mise en ligne publique
 
 - [ ] Compléter les mentions légales (`client/src/pages/MentionsLegales.tsx`) :
