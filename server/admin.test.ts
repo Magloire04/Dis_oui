@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { getDb } from "./db";
 import { invitations } from "../drizzle/schema";
@@ -193,6 +193,39 @@ describe("journal d'exploitation", () => {
     expect(detail.terme).toBe("haine");
     // Seul le terme déclencheur est conservé, jamais la phrase entière.
     expect(JSON.stringify(rejets[0].detail)).not.toContain("message plein");
+  });
+
+  it("signale une invitation qui a reçu une réponse", async () => {
+    const ctx = await contexteConnecte();
+    const api = appRouter.createCaller(ctx);
+
+    const sansReponse = await api.invitations.create({
+      creatorEmail: "createur@exemple.fr",
+      config: configValide,
+      expiresDays: 30,
+      allowMultiple: false,
+    });
+    const avecReponse = await api.invitations.create({
+      creatorEmail: "createur@exemple.fr",
+      config: configValide,
+      expiresDays: 30,
+      allowMultiple: false,
+    });
+    await api.invitations.respond({
+      slug: avecReponse.slug,
+      answer: { day: "vendredi", menu: "Sushi" },
+    });
+
+    const { invitations: lignes } = await api.admin.moderation();
+    const repondue = lignes.find(l => l.slug === avecReponse.slug);
+    const vierge = lignes.find(l => l.slug === sansReponse.slug);
+
+    // Régression : la sous-requête de comptage n'était pas qualifiée, si bien
+    // que `id` se résolvait dans la portée de `responses`. Toutes les
+    // invitations ressortaient « non répondue », y compris celles qui
+    // l'étaient.
+    expect(repondue?.aRepondu).toBe(true);
+    expect(vierge?.aRepondu).toBe(false);
   });
 
   it("expose les invitations sans donnée personnelle", async () => {
