@@ -326,19 +326,17 @@ export default function Editor() {
             </p>
           </div>
 
-          {/* `flex-1 min-w-0` et non `w-full` : le composant Button porte
-              `shrink-0`, deux boutons à 100 % dans une rangée flex ne pouvaient
-              pas rétrécir et débordaient de la page. */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              onClick={() => window.open(fullRecipientUrl, '_blank')}
-              variant="outline"
-              className="flex-1 min-w-0 rounded-xl py-3 border-stone-300">
-              Tester l'expérience destinataire
-            </Button>
+          {/* Un bouton « Tester l'expérience destinataire » ouvrait ici le vrai
+              lien du destinataire. Deux effets qu'il n'annonçait pas : la
+              consultation horodate l'ouverture, de sorte que la page de suivi
+              affichait « Vue » avant même que le destinataire ait reçu le lien ;
+              et aller au bout du parcours enregistrait une réponse, ce qui
+              verrouillait l'invitation puisque `allowMultiple` vaut faux par
+              défaut. Le créateur reste libre d'ouvrir le lien lui-même. */}
+          <div className="pt-4">
             <Button
               onClick={() => setLocation(createdResult.trackingUrl)}
-              className="flex-1 min-w-0 bg-stone-900 hover:bg-stone-800 text-white rounded-xl py-3">
+              className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-xl py-3">
               Voir la page de suivi privée
             </Button>
           </div>
