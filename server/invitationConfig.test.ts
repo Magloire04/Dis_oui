@@ -60,6 +60,7 @@ describe("userAuthoredText", () => {
     ],
     selectedMenuOptions: ["amiwo"],
     includeSurprise: true,
+    venueOptions: [],
     includeVenue: true,
     themeKey: "sepia",
     enableAnimation: true,
@@ -83,10 +84,20 @@ describe("userAuthoredText", () => {
   });
 
   it("exclut les valeurs techniques", () => {
-    // La modération ne doit jamais analyser un identifiant de thème ou de
-    // menu : c'est ce que faisait `JSON.stringify(config)`.
+    // La modération ne doit jamais analyser une clé de thème ni un code de
+    // relation : c'est ce que faisait `JSON.stringify(config)`.
     expect(textes).not.toContain("sepia");
-    expect(textes).not.toContain("amiwo");
     expect(textes).not.toContain("crush");
+  });
+
+  it("retient les plats, désormais rédigeables par le créateur", () => {
+    // Ils étaient exclus au motif qu'il s'agissait d'identifiants de
+    // catalogue. Depuis que le créateur peut ajouter ses propres plats, les
+    // exclure laissait passer un texte libre sans aucun contrôle.
+    //
+    // Les identifiants du catalogue repassent donc par le filtre. C'est sans
+    // effet : celui-ci compare à sept mots français entiers, qu'aucun code
+    // court comme « amiwo » ne peut former.
+    expect(textes).toContain("amiwo");
   });
 });

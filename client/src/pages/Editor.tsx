@@ -15,6 +15,8 @@ import {
   MAX_DATE_SLOTS,
   MAX_MENU_LABEL,
   MAX_MENU_OPTIONS,
+  MAX_VENUE_LABEL,
+  MAX_VENUE_OPTIONS,
   type DateSlot,
   type MotionIntensity,
   type NoButtonBehavior,
@@ -131,24 +133,44 @@ function withDateTime(slot: DateSlot, dateInput: string, timeInput: string): Dat
   };
 }
 
+/**
+ * Étapes de l'éditeur, nommées plutôt que numérotées à la main.
+ *
+ * L'insertion du lieu entre le menu et le design décale tout ce qui suit :
+ * avec des nombres écrits en dur, un renvoi vers « l'étape 5 » aurait continué
+ * de compiler en désignant la mauvaise page.
+ */
+const ETAPES = {
+  identites: 1,
+  question: 2,
+  creneaux: 3,
+  menu: 4,
+  lieu: 5,
+  design: 6,
+  livraison: 7,
+} as const;
+
+const DERNIERE_ETAPE = ETAPES.livraison;
+
 // Étape où corriger chaque champ, pour renvoyer l'utilisateur au bon endroit
 // plutôt que d'afficher une erreur sans issue.
 const FIELD_STEPS: Record<string, number> = {
-  recipientName: 1,
-  senderName: 1,
-  relation: 1,
-  tone: 1,
-  question: 2,
-  subtitle: 2,
-  emoji: 2,
-  noButtonBehavior: 2,
-  maxRefusals: 2,
-  teases: 2,
-  selectedDates: 3,
-  customTimeNote: 3,
-  selectedMenuOptions: 4,
-  themeKey: 5,
-  finalMessage: 5,
+  recipientName: ETAPES.identites,
+  senderName: ETAPES.identites,
+  relation: ETAPES.identites,
+  tone: ETAPES.identites,
+  question: ETAPES.question,
+  subtitle: ETAPES.question,
+  emoji: ETAPES.question,
+  noButtonBehavior: ETAPES.question,
+  maxRefusals: ETAPES.question,
+  teases: ETAPES.question,
+  selectedDates: ETAPES.creneaux,
+  customTimeNote: ETAPES.creneaux,
+  selectedMenuOptions: ETAPES.menu,
+  venueOptions: ETAPES.lieu,
+  themeKey: ETAPES.design,
+  finalMessage: ETAPES.design,
 };
 
 // Zod émet ses messages en anglais ; l'interface est entièrement en français.
@@ -166,7 +188,7 @@ const FIELD_MESSAGES: Record<string, string> = {
 
 export default function Editor() {
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState(1); // 1 to 6
+  const [step, setStep] = useState<number>(ETAPES.identites);
 
   // Form State
   const [recipientName, setRecipientName] = useState("");
@@ -191,6 +213,10 @@ export default function Editor() {
   const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["amiwo", "ablo", "bistrot"]);
   const [nouveauPlat, setNouveauPlat] = useState("");
   const [includeSurprise, setIncludeSurprise] = useState(true);
+
+  // Lieu
+  const [venueOptions, setVenueOptions] = useState<string[]>([]);
+  const [nouveauLieu, setNouveauLieu] = useState("");
   const [includeVenue, setIncludeVenue] = useState(true);
 
   // Art Direction & Theme
@@ -231,6 +257,21 @@ export default function Editor() {
     setNouveauPlat("");
   };
 
+  const ajouterLieu = () => {
+    const lieu = nouveauLieu.trim();
+    if (!lieu) return;
+    if (venueOptions.includes(lieu)) {
+      toast.error("Ce lieu est déjà dans la liste.");
+      return;
+    }
+    if (venueOptions.length >= MAX_VENUE_OPTIONS) {
+      toast.error(`Pas plus de ${MAX_VENUE_OPTIONS} lieux.`);
+      return;
+    }
+    setVenueOptions([...venueOptions, lieu]);
+    setNouveauLieu("");
+  };
+
   // Rassemble l'état du formulaire dans la forme attendue par l'API.
   // Une seule source de vérité pour la sauvegarde du brouillon et l'envoi.
   const buildConfigDraft = () => ({
@@ -249,6 +290,7 @@ export default function Editor() {
     selectedDates,
     selectedMenuOptions,
     includeSurprise,
+    venueOptions,
     includeVenue,
     themeKey,
     enableAnimation,
@@ -291,6 +333,7 @@ export default function Editor() {
         setSelectedDates(c.selectedDates);
         setSelectedMenuOptions(c.selectedMenuOptions);
         setIncludeSurprise(c.includeSurprise);
+        setVenueOptions(c.venueOptions ?? []);
         setIncludeVenue(c.includeVenue);
         setThemeKey(c.themeKey);
         setEnableAnimation(c.enableAnimation);
@@ -358,6 +401,7 @@ export default function Editor() {
     selectedDates,
     selectedMenuOptions,
     includeSurprise,
+    venueOptions,
     includeVenue,
     themeKey,
     enableAnimation,
@@ -522,12 +566,13 @@ export default function Editor() {
             {/* Step navigation tabs */}
             <div className="flex items-center justify-between border-b border-stone-200 pb-4 overflow-x-auto gap-2">
               {[
-                { id: 1, label: "Identités", icon: Smile },
-                { id: 2, label: "Question", icon: Sparkles },
-                { id: 3, label: "Créneaux", icon: Calendar },
-                { id: 4, label: "Menu", icon: Utensils },
-                { id: 5, label: "Design", icon: Palette },
-                { id: 6, label: "Livraison", icon: Send },
+                { id: ETAPES.identites, label: "Identités", icon: Smile },
+                { id: ETAPES.question, label: "Question", icon: Sparkles },
+                { id: ETAPES.creneaux, label: "Créneaux", icon: Calendar },
+                { id: ETAPES.menu, label: "Menu", icon: Utensils },
+                { id: ETAPES.lieu, label: "Lieu", icon: MapPin },
+                { id: ETAPES.design, label: "Design", icon: Palette },
+                { id: ETAPES.livraison, label: "Livraison", icon: Send },
               ].map((s) => {
                 const Icon = s.icon;
                 const isActive = step === s.id;
@@ -552,7 +597,7 @@ export default function Editor() {
             </div>
 
             {/* STEP 1: Identities & Tone */}
-            {step === 1 && (
+            {step === ETAPES.identites && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-extrabold text-stone-900">Qui invite qui ?</h2>
@@ -635,7 +680,7 @@ export default function Editor() {
             )}
 
             {/* STEP 2: Question & Fleeing button */}
-            {step === 2 && (
+            {step === ETAPES.question && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-extrabold text-stone-900">La question & taquineries</h2>
@@ -765,7 +810,7 @@ export default function Editor() {
             )}
 
             {/* STEP 3: Time slots */}
-            {step === 3 && (
+            {step === ETAPES.creneaux && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-extrabold text-stone-900">Les créneaux proposés</h2>
@@ -855,11 +900,13 @@ export default function Editor() {
             )}
 
             {/* STEP 4: Menu & Venue */}
-            {step === 4 && (
+            {step === ETAPES.menu && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
-                  <h2 className="text-2xl font-extrabold text-stone-900">Le menu & les options</h2>
-                  <p className="text-sm text-stone-600">Sélectionnez les propositions culinaires et options de lieu.</p>
+                  <h2 className="text-2xl font-extrabold text-stone-900">Le menu</h2>
+                  <p className="text-sm text-stone-600">
+                    Sélectionnez les propositions culinaires. Le lieu se règle à l'étape suivante.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -957,21 +1004,99 @@ export default function Editor() {
                     />
                     <span className="text-sm text-stone-700 font-medium">Ajouter l'option « Surprends-moi »</span>
                   </label>
-                  <label className="flex items-center gap-3 min-h-11 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={includeVenue} 
-                      onChange={(e) => setIncludeVenue(e.target.checked)}
-                      className="w-5 h-5 accent-brand-600 rounded shrink-0"
-                    />
-                    <span className="text-sm text-stone-700 font-medium">Autoriser le destinataire à proposer un lieu</span>
-                  </label>
                 </div>
               </div>
             )}
 
-            {/* STEP 5: Art Direction & Themes */}
-            {step === 5 && (
+            {/* ÉTAPE LIEU */}
+            {step === ETAPES.lieu && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-extrabold text-stone-900">Où se retrouve-t-on ?</h2>
+                  <p className="text-sm text-stone-600">
+                    Proposez jusqu'à {MAX_VENUE_OPTIONS} endroits ; le destinataire choisira.
+                    Vous pouvez aussi le laisser en proposer un.
+                  </p>
+                </div>
+
+                {venueOptions.length > 0 && (
+                  <div className="space-y-3">
+                    {venueOptions.map(lieu => (
+                      <div
+                        key={lieu}
+                        className="p-4 min-h-14 rounded-2xl border border-brand-600 bg-brand-50/50 shadow-sm flex items-center gap-3">
+                        <MapPin className="w-5 h-5 shrink-0 text-brand-700" strokeWidth={1.75} />
+                        <span className="flex-1 min-w-0 text-sm font-medium text-stone-800 truncate">{lieu}</span>
+                        <button
+                          type="button"
+                          aria-label={`Retirer ${lieu}`}
+                          onClick={() => setVenueOptions(venueOptions.filter(l => l !== lieu))}
+                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {venueOptions.length < MAX_VENUE_OPTIONS && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="lieu-propose">
+                      Ajouter un lieu
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="lieu-propose"
+                        value={nouveauLieu}
+                        onChange={e => setNouveauLieu(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            ajouterLieu();
+                          }
+                        }}
+                        maxLength={MAX_VENUE_LABEL}
+                        placeholder="ex : Le Livingstone, Haie Vive"
+                        className="rounded-xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={ajouterLieu}
+                        disabled={!nouveauLieu.trim()}
+                        className="rounded-xl shrink-0 min-h-11">
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 pt-2">
+                  <label className="flex items-center gap-3 min-h-11 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeVenue}
+                      onChange={e => setIncludeVenue(e.target.checked)}
+                      className="w-5 h-5 accent-brand-600 rounded shrink-0"
+                    />
+                    <span className="text-sm text-stone-700 font-medium">
+                      Autoriser le destinataire à proposer un lieu
+                    </span>
+                  </label>
+                  {/* Ni lieu proposé, ni saisie autorisée : l'écran du
+                      destinataire n'aurait rien à montrer, autant le dire ici
+                      plutôt que de le laisser découvrir un parcours amputé. */}
+                  {venueOptions.length === 0 && !includeVenue && (
+                    <p className="text-[11px] text-stone-500">
+                      Aucun lieu ne sera demandé au destinataire : il ne verra pas cette étape.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ÉTAPE DESIGN */}
+            {step === ETAPES.design && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-extrabold text-stone-900">Direction artistique & Thèmes</h2>
@@ -1053,8 +1178,8 @@ export default function Editor() {
               </div>
             )}
 
-            {/* STEP 6: Delivery & Email */}
-            {step === 6 && (
+            {/* ÉTAPE LIVRAISON */}
+            {step === ETAPES.livraison && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-extrabold text-stone-900">Livraison & Réception</h2>
@@ -1154,14 +1279,14 @@ export default function Editor() {
             <div className="flex items-center justify-between pt-8 border-t border-stone-200">
               <Button 
                 variant="outline" 
-                onClick={() => setStep(Math.max(1, step - 1))}
-                disabled={step === 1}
+                onClick={() => setStep(Math.max(ETAPES.identites, step - 1))}
+                disabled={step === ETAPES.identites}
                 className="rounded-xl px-6">
                 Précédent
               </Button>
-              {step < 6 && (
+              {step < DERNIERE_ETAPE && (
                 <Button 
-                  onClick={() => setStep(Math.min(6, step + 1))}
+                  onClick={() => setStep(Math.min(DERNIERE_ETAPE, step + 1))}
                   className="bg-stone-900 hover:bg-stone-800 text-white rounded-xl px-6">
                   Suivant <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

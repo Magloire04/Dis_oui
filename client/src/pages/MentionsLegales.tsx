@@ -38,8 +38,8 @@ export default function MentionsLegales() {
             </li>
             <li>
               Adresse e-mail de contact :{" "}
-              <a href="mailto:elisee.atonde@bytechnum.com" className="text-brand-700 underline underline-offset-2">
-                elisee.atonde@bytechnum.com
+              <a href="mailto:disoui@bytechnum.com" className="text-brand-700 underline underline-offset-2">
+                disoui@bytechnum.com
               </a>
             </li>
             <li>
