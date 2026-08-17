@@ -29,6 +29,7 @@ const baseConfig: InvitationConfig = {
   ],
   selectedMenuOptions: ["amiwo"],
   includeSurprise: false,
+  venueOptions: [],
   includeVenue: false,
   themeKey: "bytechnum",
   enableAnimation: true,

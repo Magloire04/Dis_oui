@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRoute } from "wouter";
 import { resolveTheme, MENU_OPTIONS_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
-import { normalizeDateSlots, slotStartsAt, type DateSlot } from "@shared/invitationConfig";
+import { MAX_VENUE_LABEL, normalizeDateSlots, slotStartsAt, type DateSlot } from "@shared/invitationConfig";
 import { buildRendezVousIcs } from "@shared/ics";
 import { lienWhatsApp, messageWhatsApp } from "@shared/whatsapp";
 import { format } from "date-fns";
@@ -13,8 +13,25 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BoutonNon } from "@/components/BoutonNon";
 import type { LucideIcon } from "lucide-react";
-import { Calendar, Download, MailX, MessageCircle, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Calendar, Download, MailX, MapPin, MessageCircle, Sparkles, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
+
+/**
+ * Écrans du parcours destinataire.
+ *
+ * Nommés plutôt que numérotés : l’insertion du lieu entre le menu et le
+ * billet décale tout ce qui suit, et un numéro écrit en dur aurait continué
+ * de compiler en menant au mauvais écran.
+ */
+const ECRANS = {
+  enveloppe: 0,
+  question: 1,
+  reaction: 2,
+  creneau: 3,
+  menu: 4,
+  lieu: 5,
+  billet: 6,
+} as const;
 
 export default function RecipientFunnel() {
   const [, params] = useRoute("/r/:slug");
@@ -31,7 +48,7 @@ export default function RecipientFunnel() {
       // confirmation s'en sert : la réponse est toujours enregistrée, la
       // notification ne l'est pas toujours.
       setEmailEnvoye(data.emailSent);
-      setScreen(5); // Ticket screen
+      setScreen(ECRANS.billet);
       toast.success("Ta réponse est enregistrée !");
     },
     onError: (err) => {
@@ -39,7 +56,7 @@ export default function RecipientFunnel() {
     }
   });
 
-  const [screen, setScreen] = useState(0); // 0: Threshold envelope, 1: Question, 2: Reaction, 3: Date/Time, 4: Menu, 5: Ticket
+  const [screen, setScreen] = useState<number>(ECRANS.enveloppe);
   const [refusCount, setRefusCount] = useState(0);
 
   // Response choices
@@ -126,6 +143,14 @@ export default function RecipientFunnel() {
         )
       : null;
 
+  // Lieux proposés par le créateur. Absent des invitations créées avant cet
+  // écran : le tableau vide y ramène simplement au champ libre d'autrefois.
+  const venueChoices: string[] = (config.venueOptions as string[] | undefined) ?? [];
+
+  // Ni lieu proposé, ni saisie autorisée : l'écran se réduit au petit mot, et
+  // son titre le dit plutôt que d'annoncer un choix de lieu inexistant.
+  const onDemandeUnLieu = venueChoices.length > 0 || Boolean(config.includeVenue);
+
   const maxRefusals: number = config.maxRefusals ?? 12;
   const behavior: string = config.noButtonBehavior ?? "fuyant";
   const fleeing = behavior === "fuyant" || behavior === "les_deux";
@@ -144,16 +169,16 @@ export default function RecipientFunnel() {
 
   const handleYes = () => {
     if (refusCount > 0) {
-      setScreen(2); // Reaction screen if tried to refuse
+      setScreen(ECRANS.reaction);
     } else {
-      setScreen(3); // Date screen directly
+      setScreen(ECRANS.creneau);
     }
   };
 
   const handleFinalSubmit = () => {
     if (!selectedSlot) {
       toast.error("Choisis d'abord un créneau.");
-      setScreen(3);
+      setScreen(ECRANS.creneau);
       return;
     }
 
@@ -178,7 +203,7 @@ export default function RecipientFunnel() {
 
   // Une invitation déjà répondue laissait le visiteur refaire tout le parcours
   // pour se heurter à un conflit au moment de valider.
-  if (invitation.alreadyResponded && screen !== 5) {
+  if (invitation.alreadyResponded && screen !== ECRANS.billet) {
     const previous = invitation.response as { day?: string; menu?: string } | undefined;
     return (
       <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center p-6 font-sans`}>
@@ -208,7 +233,7 @@ export default function RecipientFunnel() {
       <div className="w-full max-w-md relative z-10">
 
         {/* SCREEN 0: Threshold Envelope */}
-        {screen === 0 && (
+        {screen === ECRANS.enveloppe && (
           <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-6 animate-scaleUp`}>
             <div className={`w-24 h-24 mx-auto rounded-full ${theme.accentSoft} flex items-center justify-center text-4xl shadow-inner animate-heartbeat`}>
               {config.emoji || "💌"}
@@ -223,7 +248,7 @@ export default function RecipientFunnel() {
               </p>
             </div>
             <Button
-              onClick={() => setScreen(1)}
+              onClick={() => setScreen(ECRANS.question)}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100`}>
               Ouvrir l'enveloppe
             </Button>
@@ -231,7 +256,7 @@ export default function RecipientFunnel() {
         )}
 
         {/* SCREEN 1: The Question */}
-        {screen === 1 && (
+        {screen === ECRANS.question && (
           <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-8 animate-fadeIn`}>
             <div className={`w-20 h-20 mx-auto rounded-3xl ${theme.accentSoft} flex items-center justify-center text-4xl shadow-inner`}>
               {config.emoji || "💌"}
@@ -280,7 +305,7 @@ export default function RecipientFunnel() {
         )}
 
         {/* SCREEN 2: Reaction (if tried to refuse) */}
-        {screen === 2 && (
+        {screen === ECRANS.reaction && (
           <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-6 animate-scaleUp`}>
             <div className={`w-20 h-20 mx-auto rounded-full ${theme.accentSoft} flex items-center justify-center text-3xl shadow-inner`}>
               🤭
@@ -292,7 +317,7 @@ export default function RecipientFunnel() {
               </p>
             </div>
             <Button
-              onClick={() => setScreen(3)}
+              onClick={() => setScreen(ECRANS.creneau)}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl`}>
               Continuer vers les créneaux
             </Button>
@@ -300,7 +325,7 @@ export default function RecipientFunnel() {
         )}
 
         {/* SCREEN 3: Date & Time slots */}
-        {screen === 3 && (
+        {screen === ECRANS.creneau && (
           <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl space-y-6 animate-fadeIn`}>
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-extrabold">Quand est-on libre ?</h2>
@@ -337,7 +362,7 @@ export default function RecipientFunnel() {
             </div>
 
             <Button
-              onClick={() => setScreen(4)}
+              onClick={() => setScreen(ECRANS.menu)}
               disabled={!selectedSlot}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl disabled:opacity-40`}>
               {selectedSlot ? "Étape suivante : Le menu" : "Choisis un créneau pour continuer"}
@@ -345,8 +370,8 @@ export default function RecipientFunnel() {
           </Card>
         )}
 
-        {/* SCREEN 4: Menu selection */}
-        {screen === 4 && (
+        {/* ÉCRAN MENU */}
+        {screen === ECRANS.menu && (
           <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl space-y-6 animate-fadeIn`}>
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-extrabold">Qu'est-ce qu'on mange ?</h2>
@@ -377,17 +402,67 @@ export default function RecipientFunnel() {
               })}
             </div>
 
+            <Button
+              onClick={() => setScreen(ECRANS.lieu)}
+              className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl`}>
+              Continuer
+            </Button>
+          </Card>
+        )}
+
+        {/* ÉCRAN LIEU */}
+        {screen === ECRANS.lieu && (
+          <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl space-y-6 animate-fadeIn`}>
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-extrabold">
+                {onDemandeUnLieu ? "Où se retrouve-t-on ?" : `Un mot pour ${config.senderName} ?`}
+              </h2>
+              <p className={`text-xs ${theme.mutedText}`}>
+                {venueChoices.length > 0
+                  ? "Choisis l'endroit qui te tente le plus."
+                  : onDemandeUnLieu
+                    ? "Propose l'endroit de ton choix."
+                    : "Le dernier mot avant ton billet."}
+              </p>
+            </div>
+
+            {venueChoices.length > 0 && (
+              <div className="space-y-2.5" role="radiogroup" aria-label="Lieux proposés">
+                {venueChoices.map(lieu => {
+                  const isSelected = customVenue === lieu;
+                  return (
+                    <button
+                      key={lieu}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setCustomVenue(lieu)}
+                      className={`w-full text-left p-3.5 min-h-13 rounded-2xl border transition-all flex items-center gap-3 ${
+                        isSelected ? theme.optionSelected : theme.optionIdle
+                      }`}
+                    >
+                      <MapPin className="w-5 h-5 shrink-0 opacity-80" strokeWidth={1.75} />
+                      <span className="text-sm">{lieu}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Le champ libre partage `customVenue` avec les propositions
+                ci-dessus : écrire un endroit décoche celui qui l'était, ce qui
+                est bien le comportement voulu — c'est l'un ou l'autre. */}
             {config.includeVenue && (
               <div className="space-y-1">
                 <label className={`text-xs font-semibold ${theme.mutedText}`} htmlFor="lieu">
-                  Proposer un lieu (optionnel)
+                  {venueChoices.length > 0 ? "Ou propose un autre endroit" : "Proposer un lieu (optionnel)"}
                 </label>
                 <Input
                   id="lieu"
-                  value={customVenue}
-                  onChange={(e) => setCustomVenue(e.target.value)}
-                  placeholder="ex: Le café de la Gare"
-                  maxLength={80}
+                  value={venueChoices.includes(customVenue) ? "" : customVenue}
+                  onChange={e => setCustomVenue(e.target.value)}
+                  placeholder="ex : Le café de la Gare"
+                  maxLength={MAX_VENUE_LABEL}
                   className="rounded-xl text-xs"
                 />
               </div>
@@ -397,10 +472,11 @@ export default function RecipientFunnel() {
               <label className={`text-xs font-semibold ${theme.mutedText}`} htmlFor="petit-mot">
                 Un petit mot pour {config.senderName} ?
               </label>
-              <Textarea 
-                value={customNote} 
-                onChange={(e) => setCustomNote(e.target.value)} 
-                placeholder="ex: J'ai hâte !" 
+              <Textarea
+                id="petit-mot"
+                value={customNote}
+                onChange={e => setCustomNote(e.target.value)}
+                placeholder="ex : J'ai hâte !"
                 rows={2}
                 className="rounded-xl text-xs"
               />
@@ -415,8 +491,8 @@ export default function RecipientFunnel() {
           </Card>
         )}
 
-        {/* SCREEN 5: Confirmation Ticket */}
-        {screen === 5 && (
+        {/* ÉCRAN BILLET */}
+        {screen === ECRANS.billet && (
           <Card className={`p-8 rounded-[36px] ${theme.cardBg} ${theme.textColor} shadow-2xl text-center space-y-6 animate-scaleUp`}>
             <div className={`w-16 h-16 rounded-full ${theme.accentSoft} flex items-center justify-center mx-auto text-3xl shadow-inner`}>
               🎉
