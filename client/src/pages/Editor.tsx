@@ -11,6 +11,8 @@ import {
   invitationConfigSchema,
   LINK_DURATIONS,
   MAX_DATE_SLOTS,
+  MAX_MENU_LABEL,
+  MAX_MENU_OPTIONS,
   type DateSlot,
   type MotionIntensity,
   type NoButtonBehavior,
@@ -44,7 +46,9 @@ import {
   Sparkles,
   Users,
   Utensils,
+  UtensilsCrossed,
   Wand2,
+  X,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { toast } from "sonner";
@@ -165,7 +169,8 @@ export default function Editor() {
   const [selectedDates, setSelectedDates] = useState<DateSlot[]>(() => defaultSlots());
 
   // Menu & Options
-  const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["sushi", "italien", "bistrot"]);
+  const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["amiwo", "ablo", "bistrot"]);
+  const [nouveauPlat, setNouveauPlat] = useState("");
   const [includeSurprise, setIncludeSurprise] = useState(true);
   const [includeVenue, setIncludeVenue] = useState(true);
 
@@ -184,6 +189,27 @@ export default function Editor() {
   const [createdResult, setCreatedResult] = useState<{ slug: string; creatorToken: string; trackingUrl: string; recipientUrl: string } | null>(null);
 
   const currentTheme = THEMES[themeKey];
+
+  // Un plat retenu qui ne correspond à aucun identifiant du catalogue est un
+  // libellé saisi par le créateur : il s'affiche à part, avec sa croix.
+  const platsPersonnalises = selectedMenuOptions.filter(
+    m => !MENU_OPTIONS_PRESETS.some(opt => opt.id === m)
+  );
+
+  const ajouterPlat = () => {
+    const plat = nouveauPlat.trim();
+    if (!plat) return;
+    if (selectedMenuOptions.includes(plat)) {
+      toast.error("Ce plat est déjà dans la liste.");
+      return;
+    }
+    if (selectedMenuOptions.length >= MAX_MENU_OPTIONS) {
+      toast.error(`Pas plus de ${MAX_MENU_OPTIONS} propositions.`);
+      return;
+    }
+    setSelectedMenuOptions([...selectedMenuOptions, plat]);
+    setNouveauPlat("");
+  };
 
   // Rassemble l'état du formulaire dans la forme attendue par l'API.
   // Une seule source de vérité pour la sauvegarde du brouillon et l'envoi.
@@ -768,6 +794,64 @@ export default function Editor() {
                     );
                   })}
                 </div>
+
+                {/* Plats saisis librement.
+                    Une entrée de `selectedMenuOptions` est soit un identifiant du
+                    catalogue, soit un libellé rédigé : le funnel résout d'abord dans
+                    le catalogue et affiche la chaîne telle quelle à défaut. */}
+                {platsPersonnalises.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {platsPersonnalises.map(plat => (
+                      <div
+                        key={plat}
+                        className="p-4 min-h-14 rounded-2xl border border-brand-600 bg-brand-50/50 shadow-sm flex items-center gap-3">
+                        <UtensilsCrossed className="w-5 h-5 shrink-0 text-brand-700" strokeWidth={1.75} />
+                        <span className="flex-1 min-w-0 text-sm font-medium text-stone-800 truncate">
+                          {plat}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Retirer ${plat}`}
+                          onClick={() => setSelectedMenuOptions(selectedMenuOptions.filter(m => m !== plat))}
+                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedMenuOptions.length < MAX_MENU_OPTIONS && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="plat-libre">
+                      Un plat qui n'est pas dans la liste ?
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="plat-libre"
+                        value={nouveauPlat}
+                        onChange={e => setNouveauPlat(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            ajouterPlat();
+                          }
+                        }}
+                        maxLength={MAX_MENU_LABEL}
+                        placeholder="ex : Wagasi grillé & piment vert"
+                        className="rounded-xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={ajouterPlat}
+                        disabled={!nouveauPlat.trim()}
+                        className="rounded-xl shrink-0 min-h-11">
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3 pt-2">
                   <label className="flex items-center gap-3 min-h-11 cursor-pointer">

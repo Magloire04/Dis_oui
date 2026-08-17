@@ -51,7 +51,7 @@ const validConfig: InvitationConfig = {
       durationMin: 120,
     },
   ],
-  selectedMenuOptions: ["sushi", "italien"],
+  selectedMenuOptions: ["amiwo", "bistrot"],
   includeSurprise: true,
   includeVenue: true,
   themeKey: "blush",

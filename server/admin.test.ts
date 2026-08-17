@@ -54,7 +54,7 @@ const configValide: InvitationConfig = {
   selectedDates: [
     { id: "a", label: "vendredi", startsAt: "2026-08-21T18:00:00.000Z", durationMin: 120 },
   ],
-  selectedMenuOptions: ["sushi"],
+  selectedMenuOptions: ["amiwo"],
   includeSurprise: false,
   includeVenue: false,
   themeKey: "bytechnum",
