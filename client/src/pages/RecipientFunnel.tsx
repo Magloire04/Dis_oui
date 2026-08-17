@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { BoutonNon } from "@/components/BoutonNon";
 import type { LucideIcon } from "lucide-react";
 import { Calendar, Download, MailX, Sparkles, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
@@ -39,7 +40,6 @@ export default function RecipientFunnel() {
 
   const [screen, setScreen] = useState(0); // 0: Threshold envelope, 1: Question, 2: Reaction, 3: Date/Time, 4: Menu, 5: Ticket
   const [refusCount, setRefusCount] = useState(0);
-  const [noBtnPos, setNoBtnPos] = useState<{ x: number; y: number } | null>(null);
 
   // Response choices
   const [emailEnvoye, setEmailEnvoye] = useState(false);
@@ -117,21 +117,7 @@ export default function RecipientFunnel() {
         "Tu hésites encore ?"
       : null;
 
-  const handleNoInteraction = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    if (noButtonExhausted) return;
-
-    setRefusCount(prev => prev + 1);
-
-    if (fleeing) {
-      // Amplitude volontairement bornée : à ±120 px, le bouton sortait de la
-      // carte et pouvait devenir inatteignable sur un écran étroit. La fuite
-      // reste lisible tout en restant dans le cadre.
-      const randomX = (Math.random() - 0.5) * 130;
-      const randomY = (Math.random() - 0.5) * 90;
-      setNoBtnPos({ x: randomX, y: randomY });
-    }
-  };
+  const compterUnRefus = () => setRefusCount(prev => Math.min(prev + 1, maxRefusals));
 
   const handleYes = () => {
     if (refusCount > 0) {
@@ -239,34 +225,24 @@ export default function RecipientFunnel() {
               </p>
             </div>
 
-            <div className="space-y-3 relative min-h-[140px] flex flex-col justify-center">
+            <div className="space-y-3">
+              {/* Le « Oui » reste hors de l'aire de jeu : un saut de −45 px
+                  plaçait auparavant 79 % du « Non » derrière lui. */}
               <Button
                 onClick={handleYes}
-                className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100 z-10`}>
+                className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100`}>
                 Oui, avec immense plaisir
               </Button>
 
               {behavior !== "desactive" && (
-                <button
-                  type="button"
-                  disabled={noButtonExhausted}
-                  onMouseEnter={fleeing && !noButtonExhausted ? handleNoInteraction : undefined}
-                  onTouchStart={fleeing && !noButtonExhausted ? handleNoInteraction : undefined}
-                  onClick={handleNoInteraction}
-                  style={{
-                    // Le rétrécissement passait par `scale-${...}`, une classe
-                    // Tailwind construite dynamiquement, donc jamais générée.
-                    transform: [
-                      noBtnPos ? `translate(${noBtnPos.x}px, ${noBtnPos.y}px)` : "",
-                      shrinking ? `scale(${Math.max(0.4, 1 - refusCount * 0.1)})` : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" "),
-                  }}
-                  className={`w-full py-3 rounded-2xl border font-semibold text-xs transition-transform duration-200 disabled:opacity-40 disabled:cursor-not-allowed motion-reduce:transition-none ${theme.optionIdle}`}
-                >
-                  {noButtonExhausted ? "Le bouton « Non » a rendu les armes" : "Non (refuser)"}
-                </button>
+                <BoutonNon
+                  fuyant={fleeing}
+                  retrecissant={shrinking}
+                  refusCount={refusCount}
+                  epuise={noButtonExhausted}
+                  onRefus={compterUnRefus}
+                  classeIdle={theme.optionIdle}
+                />
               )}
 
               {noButtonExhausted && (
