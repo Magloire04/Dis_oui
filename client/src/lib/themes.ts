@@ -1,19 +1,18 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Bean,
+  Beef,
   Citrus,
   CookingPot,
-  Dessert,
-  EggFried,
+  Croissant,
+  Drumstick,
   Fish,
   Flower,
   Gem,
+  Grape,
   MoonStar,
-  Salad,
-  Sandwich,
   ScrollText,
-  Soup,
   TreePine,
-  Wheat,
   Wine,
   Zap,
 } from "lucide-react";
@@ -227,15 +226,18 @@ export type MenuOption = { id: string; Icon: LucideIcon; label: string };
  * n'est là que pour la lecture rapide.
  */
 export const MENU_OPTIONS_PRESETS: MenuOption[] = [
-  { id: "sushi", Icon: Fish, label: "Bar à sushis & makis fondants" },
-  { id: "italien", Icon: Wheat, label: "Trattoria italienne secrète" },
-  { id: "burger", Icon: Sandwich, label: "Gourmet burgers & frites truffées" },
-  { id: "bistrot", Icon: Wine, label: "Bistrot français & planches" },
-  { id: "asiatique", Icon: Soup, label: "Ramen fumants & nouilles sautées" },
-  { id: "marocain", Icon: CookingPot, label: "Couscous royal & pâtisseries" },
-  { id: "libanais", Icon: Salad, label: "Mezzés à partager & falafels" },
-  { id: "brunch", Icon: EggFried, label: "Brunch XXL sucré-salé" },
-  { id: "dessert", Icon: Dessert, label: "Bar à desserts & douceurs" },
+  // Bénin — le service est édité depuis Porto-Novo et s'adresse d'abord à un
+  // public local ; le catalogue d'origine était exclusivement international.
+  { id: "amiwo", Icon: Drumstick, label: "Amiwo & poulet braisé" },
+  { id: "telibo", Icon: CookingPot, label: "Télibo & sauce arachide" },
+  { id: "ablo", Icon: Fish, label: "Ablo & poisson frit" },
+  { id: "atassi", Icon: Bean, label: "Atassi & sauce tomate" },
+
+  // France
+  { id: "bistrot", Icon: Wine, label: "Bistrot & planches" },
+  { id: "brasserie", Icon: Beef, label: "Steak-frites de brasserie" },
+  { id: "creperie", Icon: Croissant, label: "Crêperie bretonne" },
+  { id: "fromages", Icon: Grape, label: "Bar à fromages & vins" },
 ];
 
 export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> = {

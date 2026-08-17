@@ -33,7 +33,12 @@ export const MOTION_INTENSITIES = ["subtile", "normal", "intense"] as const;
 export type MotionIntensity = (typeof MOTION_INTENSITIES)[number];
 
 export const MAX_DATE_SLOTS = 5;
-export const MAX_MENU_OPTIONS = 9;
+// Huit propositions au catalogue, plus la marge pour les plats saisis
+// librement par le créateur.
+export const MAX_MENU_OPTIONS = 12;
+
+/** Longueur d'un plat saisi librement — un identifiant de catalogue est bien plus court. */
+export const MAX_MENU_LABEL = 60;
 export const MAX_TEASES = 12;
 
 /** Durées de vie proposées par l'éditeur, en jours. */
@@ -78,7 +83,10 @@ export const invitationConfigSchema = z.object({
   // libellé porté par chaque créneau remplit désormais ce rôle. Les anciennes
   // configurations le conservent en base, Zod l'ignore simplement.
 
-  selectedMenuOptions: z.array(shortText(32)).min(1).max(MAX_MENU_OPTIONS),
+  // Une entrée est soit un identifiant du catalogue, soit le libellé d'un plat
+  // saisi librement : le champ n'est donc pas une énumération. La limite passe
+  // de 32 à 60 caractères pour accueillir un intitulé rédigé.
+  selectedMenuOptions: z.array(shortText(MAX_MENU_LABEL)).min(1).max(MAX_MENU_OPTIONS),
   includeSurprise: z.boolean(),
   includeVenue: z.boolean(),
 
