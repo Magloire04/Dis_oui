@@ -102,6 +102,13 @@ export const invitationsRouter = router({
       };
     }),
 
+  /**
+   * Vue destinataire d'une invitation.
+   *
+   * Procédure publique : le lien se partage par message, par capture d'écran,
+   * et finit par circuler. Elle ne doit donc rendre que ce que le destinataire
+   * a besoin de voir.
+   */
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string().min(1).max(12) }))
     .query(async ({ input }) => {
@@ -122,8 +129,14 @@ export const invitationsRouter = router({
       const responses = await getResponsesForInvitation(invitation.id);
       const alreadyResponded = responses.length > 0 && !invitation.allowMultiple;
 
+      // Champs énumérés, et non `...invitation` : la ligne entière partait
+      // jusqu'ici vers qui détenait le lien, jeton de suivi compris.
       return {
-        ...invitation,
+        slug: invitation.slug,
+        config: invitation.config,
+        expiresAt: invitation.expiresAt,
+        allowMultiple: invitation.allowMultiple,
+        openedAt: invitation.openedAt,
         alreadyResponded,
         response: alreadyResponded ? responses[responses.length - 1].answer : undefined,
       };
