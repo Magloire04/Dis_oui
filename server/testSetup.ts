@@ -47,6 +47,9 @@ const TABLES_TO_CLEAR = ["responses", "invitations", "rateLimits", "operationEve
 // PREPARE/EXECUTE, qui sont liés à une session MySQL. Un pool répartirait ces
 // instructions sur des connexions différentes et la contrainte échouerait.
 const connection = await mysql.createConnection(testDatabaseUrl);
+// Même fuseau que la connexion applicative, sans quoi les tests mesureraient
+// un décalage que la production n'a pas — ou l'inverse.
+await connection.query("SET time_zone = '+00:00'");
 const db = drizzle(connection);
 
 await migrate(db, { migrationsFolder: "./drizzle" });

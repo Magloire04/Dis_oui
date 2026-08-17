@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { SerieTemporelle } from "@/components/charts/SerieTemporelle";
 import { BarresHorizontales } from "@/components/charts/BarresHorizontales";
 import { THEMES, resolveTheme } from "@/lib/themes";
+import { libelleDuree } from "@shared/invitationConfig";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -186,7 +187,7 @@ function OngletUsage() {
               Durées de validité
             </p>
             <BarresHorizontales
-              donnees={durees.map(d => ({ cle: String(d.jours), libelle: `${d.jours} jours`, valeur: d.total }))}
+              donnees={durees.map(d => ({ cle: String(d.heures), libelle: libelleDuree(d.heures), valeur: d.total }))}
             />
           </div>
         </Section>

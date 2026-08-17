@@ -49,7 +49,7 @@ async function createAndExpire(slugHolder: { slug?: string }, expired: boolean) 
   const created = await api.invitations.create({
     creatorEmail: "createur@exemple.fr",
     config,
-    expiresDays: 30,
+    expiresHours: 24,
     allowMultiple: false,
   });
   slugHolder.slug = created.slug;
