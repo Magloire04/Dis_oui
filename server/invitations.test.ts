@@ -107,6 +107,29 @@ describe("invitations.getBySlug", () => {
     expect(third.openedAt).toEqual(second.openedAt);
   });
 
+  it("ne divulgue ni l'adresse du créateur, ni son jeton de suivi, ni l'empreinte d'IP", async () => {
+    // La procédure est publique et le lien destinataire circule. Elle
+    // renvoyait la ligne entière : le jeton exposé ouvre la page de suivi que
+    // l'application présente comme privée.
+    const api = caller();
+    const { slug, creatorToken } = await createInvitation(api);
+
+    const vue = await api.invitations.getBySlug({ slug });
+    const champs = Object.keys(vue);
+
+    for (const interdit of ["creatorEmail", "creatorToken", "ipHash", "id"]) {
+      expect(champs, `${interdit} ne doit pas figurer dans la réponse`).not.toContain(interdit);
+    }
+    // Contrôle par la valeur : un champ renommé passerait le contrôle par clé.
+    expect(JSON.stringify(vue)).not.toContain(creatorToken);
+    expect(JSON.stringify(vue)).not.toContain("createur@exemple.fr");
+
+    // Ce dont le destinataire a besoin reste présent.
+    expect(champs.sort()).toEqual(
+      ["allowMultiple", "alreadyResponded", "config", "expiresAt", "openedAt", "response", "slug"].sort()
+    );
+  });
+
   it("signale une invitation déjà répondue", async () => {
     const api = caller();
     const { slug } = await createInvitation(api);
