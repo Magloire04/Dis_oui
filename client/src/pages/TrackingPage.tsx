@@ -3,7 +3,18 @@ import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, CheckCircle2, Clock, Calendar, Utensils, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Copy,
+  MapPin,
+  MessageSquareQuote,
+  ShieldAlert,
+  ShieldCheck,
+  Utensils,
+} from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { toast } from "sonner";
 
@@ -28,7 +39,7 @@ export default function TrackingPage() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
-        <div className="text-4xl">🔒</div>
+        <ShieldAlert className="w-10 h-10 opacity-70" strokeWidth={1.5} />
         <h1 className="text-2xl font-bold">Lien de suivi invalide ou expiré</h1>
         <p className="text-sm text-stone-400 max-w-md">
           Ce lien de suivi ne correspond à aucune invitation active.
@@ -120,7 +131,7 @@ export default function TrackingPage() {
           {hasResponded && latestResponse && (
             <div className="bg-brand-50/60 border border-brand-200 rounded-2xl p-6 space-y-4">
               <h3 className="font-bold text-brand-900 text-base flex items-center gap-2">
-                ✨ Réponse de {config.recipientName}
+                Réponse de {config.recipientName}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-stone-700">
                 <div className="bg-white p-4 rounded-xl border border-brand-100 space-y-1">
@@ -133,13 +144,13 @@ export default function TrackingPage() {
                 </div>
                 {latestResponse.venue && (
                   <div className="bg-white p-4 rounded-xl border border-brand-100 space-y-1">
-                    <p className="font-bold text-stone-900 flex items-center gap-1.5">📍 Lieu proposé</p>
+                    <p className="font-bold text-stone-900 flex items-center gap-1.5"><MapPin className="w-4 h-4" strokeWidth={1.75} /> Lieu proposé</p>
                     <p>{latestResponse.venue}</p>
                   </div>
                 )}
                 {latestResponse.customNote && (
                   <div className="bg-white p-4 rounded-xl border border-brand-100 space-y-1">
-                    <p className="font-bold text-stone-900 flex items-center gap-1.5">💬 Note personnelle</p>
+                    <p className="font-bold text-stone-900 flex items-center gap-1.5"><MessageSquareQuote className="w-4 h-4" strokeWidth={1.75} /> Note personnelle</p>
                     <p>« {latestResponse.customNote} »</p>
                   </div>
                 )}

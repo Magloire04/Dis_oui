@@ -21,7 +21,31 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QrCode as QrCodeSvg } from "@/components/QrCode";
-import { ArrowLeft, ArrowRight, Sparkles, Smile, Calendar, Utensils, Palette, Send, RotateCcw, Copy } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  CheckCircle2,
+  Copy,
+  Flame,
+  Flower,
+  Heart,
+  HelpCircle,
+  Laugh,
+  Lock,
+  MapPin,
+  Palette,
+  Rabbit,
+  RotateCcw,
+  Send,
+  Shrink,
+  Smile,
+  Sparkle,
+  Sparkles,
+  Users,
+  Utensils,
+  Wand2,
+} from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { toast } from "sonner";
 
@@ -289,8 +313,8 @@ export default function Editor() {
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
         <Card className="max-w-xl w-full p-8 rounded-3xl shadow-2xl space-y-6 text-center border-brand-100 bg-white">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner">
-            ✨
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 className="w-8 h-8" strokeWidth={1.75} />
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-extrabold text-stone-900">Votre invitation est prête !</h1>
@@ -322,7 +346,8 @@ export default function Editor() {
           <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center gap-3">
             <QrCodeSvg value={fullRecipientUrl} size={168} title={`QR code de l'invitation pour ${recipientName}`} />
             <p className="text-xs text-stone-500 max-w-xs">
-              Faites scanner ce code pour ouvrir l'invitation directement sur son téléphone.
+              Faites scanner ce code par le destinataire pour ouvrir l'invitation directement sur
+              son téléphone.
             </p>
           </div>
 
@@ -460,10 +485,10 @@ export default function Editor() {
                   <label className="text-xs font-semibold text-stone-700">Relation</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {([
-                      { id: "crush", label: "Crush 💫" },
-                      { id: "partenaire", label: "Partenaire ❤️" },
-                      { id: "amie", label: "Ami·e 🥂" },
-                      { id: "complique", label: "C'est compliqué 🤔" },
+                      { id: "crush", label: "Crush", Icon: Sparkle },
+                      { id: "partenaire", label: "Partenaire", Icon: Heart },
+                      { id: "amie", label: "Ami·e", Icon: Users },
+                      { id: "complique", label: "C'est compliqué", Icon: HelpCircle },
                     ] as const).map((rel) => (
                       <button
                         key={rel.id}
@@ -475,6 +500,7 @@ export default function Editor() {
                             : "border-stone-200 text-stone-700 hover:border-stone-300"
                         }`}
                       >
+                        <rel.Icon className="w-4 h-4 mx-auto mb-1" strokeWidth={1.75} />
                         {rel.label}
                       </button>
                     ))}
@@ -485,10 +511,10 @@ export default function Editor() {
                   <label className="text-xs font-semibold text-stone-700">Ton de l'invitation</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {([
-                      { id: "doux", label: "Doux 🌸" },
-                      { id: "drôle", label: "Drôle 🤪" },
-                      { id: "audacieux", label: "Audacieux 🔥" },
-                      { id: "romantique", label: "Romantique 🕯️" },
+                      { id: "doux", label: "Doux", Icon: Flower },
+                      { id: "drôle", label: "Drôle", Icon: Laugh },
+                      { id: "audacieux", label: "Audacieux", Icon: Flame },
+                      { id: "romantique", label: "Romantique", Icon: Heart },
                     ] as const).map((t) => (
                       <button
                         key={t.id}
@@ -500,6 +526,7 @@ export default function Editor() {
                             : "border-stone-200 text-stone-700 hover:border-stone-300"
                         }`}
                       >
+                        <t.Icon className="w-4 h-4 mx-auto mb-1" strokeWidth={1.75} />
                         {t.label}
                       </button>
                     ))}
@@ -562,10 +589,10 @@ export default function Editor() {
                   <label className="text-xs font-semibold text-stone-700">Comportement du bouton « Non »</label>
                   <div className="grid grid-cols-2 gap-3">
                     {([
-                      { id: "fuyant", label: "Fuyant (court partout) 🏃" },
-                      { id: "retrecissant", label: "Rétrécit à chaque clic 📉" },
-                      { id: "les_deux", label: "Les deux combinés ✨" },
-                      { id: "desactive", label: "Désactivé d'office 🔒" },
+                      { id: "fuyant", label: "Fuyant", Icon: Rabbit },
+                      { id: "retrecissant", label: "Rétrécit à chaque clic", Icon: Shrink },
+                      { id: "les_deux", label: "Les deux combinés", Icon: Wand2 },
+                      { id: "desactive", label: "Désactivé d'office", Icon: Lock },
                     ] as const).map((b) => (
                       <button
                         key={b.id}
@@ -577,6 +604,7 @@ export default function Editor() {
                             : "border-stone-200 text-stone-700"
                         }`}
                       >
+                        <b.Icon className="w-4 h-4 mx-auto mb-1" strokeWidth={1.75} />
                         {b.label}
                       </button>
                     ))}
@@ -731,7 +759,10 @@ export default function Editor() {
                           isSelected ? "border-brand-600 bg-brand-50/50 shadow-sm" : "border-stone-200 hover:border-stone-300"
                         }`}
                       >
-                        <span className="text-2xl">{opt.emoji}</span>
+                        <opt.Icon
+                          className={`w-5 h-5 shrink-0 ${isSelected ? "text-brand-700" : "text-stone-500"}`}
+                          strokeWidth={1.75}
+                        />
                         <span className="text-sm font-medium text-stone-800">{opt.label}</span>
                       </div>
                     );
@@ -746,7 +777,7 @@ export default function Editor() {
                       onChange={(e) => setIncludeSurprise(e.target.checked)}
                       className="w-5 h-5 accent-brand-600 rounded shrink-0"
                     />
-                    <span className="text-sm text-stone-700 font-medium">Ajouter l'option « Surprends-moi » ✨</span>
+                    <span className="text-sm text-stone-700 font-medium">Ajouter l'option « Surprends-moi »</span>
                   </label>
                   <label className="flex items-center gap-3 min-h-11 cursor-pointer">
                     <input 
@@ -755,7 +786,7 @@ export default function Editor() {
                       onChange={(e) => setIncludeVenue(e.target.checked)}
                       className="w-5 h-5 accent-brand-600 rounded shrink-0"
                     />
-                    <span className="text-sm text-stone-700 font-medium">Autoriser le destinataire à proposer un lieu 📍</span>
+                    <span className="text-sm text-stone-700 font-medium">Autoriser le destinataire à proposer un lieu</span>
                   </label>
                 </div>
               </div>
@@ -783,7 +814,7 @@ export default function Editor() {
                         themeKey === th.id ? "ring-2 ring-brand-600 shadow-lg scale-102" : "border-stone-200 shadow-sm"
                       }`}
                     >
-                      <span className="block text-2xl">{th.emoji}</span>
+                      <th.Icon className="w-6 h-6 mx-auto text-ink-800" strokeWidth={1.75} />
                       <span className={`block font-bold text-xs ${th.textColor}`}>{th.name}</span>
                     </button>
                   ))}
@@ -900,7 +931,7 @@ export default function Editor() {
                     onClick={handleGenerate}
                     disabled={createMutation.isPending}
                     className="w-full bg-brand-600 hover:bg-brand-700 text-white rounded-xl py-4 font-bold text-base shadow-xl shadow-brand-600/30 flex items-center justify-center gap-2">
-                    {createMutation.isPending ? "Génération en cours..." : "Générer mon lien magique ✨"}
+                    {createMutation.isPending ? "Génération en cours..." : "Générer mon lien magique"}
                   </Button>
                 </div>
               </div>
@@ -961,7 +992,7 @@ export default function Editor() {
                 {/* L'aperçu reflète le thème d'invitation choisi, pas
                     l'habillage de l'application. */}
                 <div className={`w-full py-3 rounded-2xl ${currentTheme.buttonBg} font-bold text-sm shadow-lg`}>
-                  Oui, avec immense plaisir ✨
+                  Oui, avec immense plaisir
                 </div>
                 <div className="w-full py-2.5 rounded-2xl bg-white/80 backdrop-blur text-stone-700 font-semibold text-xs border border-stone-200">
                   Non (refuser)

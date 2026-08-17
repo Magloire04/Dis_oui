@@ -180,7 +180,7 @@ export default function Home() {
                     pas l'habillage de l'application : le bouton doit donc
                     suivre `currentTheme`, et non la couleur de marque. */}
                 <div className={`w-full py-3 rounded-xl ${currentTheme.buttonBg} font-semibold text-sm shadow-md`}>
-                  Oui, avec joie ! ✨
+                  Oui, avec joie !
                 </div>
                 <div className="w-full py-2 rounded-xl bg-white/80 text-stone-700 font-medium text-xs">
                   Non (impossible)
@@ -266,8 +266,8 @@ export default function Home() {
                     : "hover:scale-102 border-stone-200/60 shadow-md"
                 }`}
               >
-                <span className="w-12 h-12 rounded-xl bg-white/80 shadow flex items-center justify-center text-xl">
-                  {theme.emoji}
+                <span className="w-12 h-12 rounded-xl bg-white/85 shadow flex items-center justify-center">
+                  <theme.Icon className="w-6 h-6 text-ink-800" strokeWidth={1.75} />
                 </span>
                 <span className={theme.textColor}>
                   <span className="block font-bold text-sm">{theme.name}</span>
