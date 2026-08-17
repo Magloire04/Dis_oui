@@ -54,6 +54,7 @@ const validConfig: InvitationConfig = {
   ],
   selectedMenuOptions: ["amiwo", "bistrot"],
   includeSurprise: true,
+  venueOptions: [],
   includeVenue: true,
   themeKey: "blush",
   enableAnimation: true,

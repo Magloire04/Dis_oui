@@ -39,6 +39,19 @@ export const MAX_MENU_OPTIONS = 12;
 
 /** Longueur d'un plat saisi librement — un identifiant de catalogue est bien plus court. */
 export const MAX_MENU_LABEL = 60;
+
+/**
+ * Lieux proposés par le créateur.
+ *
+ * Trois au plus : au-delà, l'écran du destinataire devient une liste à
+ * dépouiller, alors qu'il s'agit de choisir entre deux ou trois endroits que
+ * le créateur a en tête.
+ */
+export const MAX_VENUE_OPTIONS = 3;
+
+/** Aligné sur `venue` de la réponse : un lieu retenu doit pouvoir y tenir. */
+export const MAX_VENUE_LABEL = 80;
+
 export const MAX_TEASES = 12;
 
 /**
@@ -102,6 +115,12 @@ export const invitationConfigSchema = z.object({
   // de 32 à 60 caractères pour accueillir un intitulé rédigé.
   selectedMenuOptions: z.array(shortText(MAX_MENU_LABEL)).min(1).max(MAX_MENU_OPTIONS),
   includeSurprise: z.boolean(),
+
+  // Lieux proposés par le créateur, sur le modèle des plats : il les rédige,
+  // le destinataire choisit. Facultatif, et `default` plutôt que `min(1)` pour
+  // que les invitations créées avant cet écran continuent d'être lues.
+  venueOptions: z.array(shortText(MAX_VENUE_LABEL)).max(MAX_VENUE_OPTIONS).default([]),
+  /** Le destinataire peut-il proposer un lieu de son côté ? */
   includeVenue: z.boolean(),
 
   themeKey: z.enum(THEME_IDS),
@@ -147,6 +166,12 @@ export function userAuthoredText(config: InvitationConfig): string[] {
     ...config.teases,
     // Seul le libellé d'un créneau est rédigé : ni son identifiant ni sa date.
     ...config.selectedDates.map(slot => slot.label),
+    // Depuis que le créateur peut ajouter ses propres plats, une entrée de
+    // `selectedMenuOptions` peut être un texte rédigé — et échappait donc à la
+    // modération. Les identifiants du catalogue passent aussi par ici : ce sont
+    // des mots courts et connus, le contrôle est sans effet sur eux.
+    ...config.selectedMenuOptions,
+    ...config.venueOptions,
   ];
 }
 

@@ -31,6 +31,7 @@ const config: InvitationConfig = {
   ],
   selectedMenuOptions: ["amiwo"],
   includeSurprise: false,
+  venueOptions: [],
   includeVenue: false,
   themeKey: "blush",
   enableAnimation: true,
