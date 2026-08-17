@@ -1,3 +1,22 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  Citrus,
+  CookingPot,
+  Dessert,
+  EggFried,
+  Fish,
+  Flower,
+  Gem,
+  MoonStar,
+  Salad,
+  Sandwich,
+  ScrollText,
+  Soup,
+  TreePine,
+  Wheat,
+  Wine,
+  Zap,
+} from "lucide-react";
 import type { ThemeId, Tone } from "@shared/invitationConfig";
 
 export interface ThemeConfig {
@@ -7,11 +26,15 @@ export interface ThemeConfig {
   /**
    * Pictogramme de la vignette de thème.
    *
-   * Il vivait dans une chaîne de ternaires dupliquée entre l'accueil et
-   * l'éditeur, qui retombait silencieusement sur « ⚡ » pour tout identifiant
-   * inconnu : un thème ajouté y restait invisible.
+   * Une icône vectorielle et non un emoji : le rendu d'un emoji dépend du
+   * système d'exploitation, et l'accumulation donnait à l'interface un air de
+   * maquette. Le trait suit celui des autres icônes de l'application.
+   *
+   * Le pictogramme vivait auparavant dans une chaîne de ternaires dupliquée
+   * entre l'accueil et l'éditeur, qui retombait silencieusement sur un défaut
+   * pour tout identifiant inconnu : un thème ajouté y restait invisible.
    */
-  emoji: string;
+  Icon: LucideIcon;
   bgGradient: string;
   cardBg: string;
   textColor: string;
@@ -44,7 +67,7 @@ export interface ThemeConfig {
 export const THEMES: Record<ThemeId, ThemeConfig> = {
   blush: {
     id: "blush",
-    emoji: "🌸",
+    Icon: Flower,
     name: "Blush",
     tagline: "Rose poudré, terrasse au crépuscule",
     bgGradient: "from-rose-50 via-pink-100 to-amber-50",
@@ -63,7 +86,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   midnight: {
     id: "midnight",
-    emoji: "🌙",
+    Icon: MoonStar,
     name: "Minuit",
     tagline: "Bleu nuit, ciel étoilé, ambiance élégante",
     bgGradient: "from-slate-950 via-indigo-950 to-slate-900",
@@ -82,7 +105,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   citrus: {
     id: "citrus",
-    emoji: "🍊",
+    Icon: Citrus,
     name: "Agrume",
     tagline: "Orange & corail, été lumineux, plage",
     bgGradient: "from-amber-50 via-orange-100 to-yellow-100",
@@ -93,15 +116,15 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     particleColor: "rgba(249, 115, 22, 0.4)",
     sceneType: "citrus",
     accentSoft: "bg-orange-500/15",
-    mutedText: "text-orange-900/70",
-    labelText: "text-orange-800/60",
+    mutedText: "text-orange-900",
+    labelText: "text-orange-800",
     optionIdle: "border-orange-200 text-orange-950 hover:bg-orange-50",
     optionSelected: "border-orange-500 bg-orange-100 text-orange-950 font-bold shadow-sm",
     panelBg: "bg-amber-50 border-orange-200 text-orange-950",
   },
   forest: {
     id: "forest",
-    emoji: "🌲",
+    Icon: TreePine,
     name: "Forêt",
     tagline: "Vert profond, lucioles et mystère",
     bgGradient: "from-emerald-950 via-green-950 to-teal-950",
@@ -120,7 +143,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   sepia: {
     id: "sepia",
-    emoji: "📜",
+    Icon: ScrollText,
     name: "Sépia",
     tagline: "Crème & brun, cinéma rétro romantique",
     bgGradient: "from-amber-100 via-stone-200 to-amber-200",
@@ -132,14 +155,14 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     sceneType: "sepia",
     accentSoft: "bg-amber-700/15",
     mutedText: "text-stone-700",
-    labelText: "text-stone-500",
+    labelText: "text-stone-600",
     optionIdle: "border-amber-300 text-stone-800 hover:bg-amber-50",
     optionSelected: "border-amber-700 bg-amber-100 text-stone-900 font-bold shadow-sm",
     panelBg: "bg-[#fcf8f2] border-amber-300 text-stone-800",
   },
   neon: {
     id: "neon",
-    emoji: "⚡",
+    Icon: Zap,
     name: "Néon",
     tagline: "Violet & cyan, ville nocturne branchée",
     bgGradient: "from-purple-950 via-violet-950 to-cyan-950",
@@ -162,7 +185,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   // créatif du produit.
   bytechnum: {
     id: "bytechnum",
-    emoji: "💠",
+    Icon: Gem,
     name: "ByTechnum",
     tagline: "Bleu tech & anthracite, sobre et professionnel",
     bgGradient: "from-slate-50 via-brand-50 to-slate-100",
@@ -194,16 +217,25 @@ export function resolveTheme(themeKey: unknown): ThemeConfig {
   return THEMES.blush;
 }
 
-export const MENU_OPTIONS_PRESETS = [
-  { id: "sushi", emoji: "🍣", label: "Bar à sushis & makis fondants" },
-  { id: "italien", emoji: "🍝", label: "Trattoria italienne secrète" },
-  { id: "burger", emoji: "🍔", label: "Gourmet burgers & frites truffées" },
-  { id: "bistrot", emoji: "🍷", label: "Bistrot français & planches" },
-  { id: "asiatique", emoji: "🍜", label: "Ramen fumants & nouilles sautées" },
-  { id: "marocain", emoji: "🍲", label: "Couscous royal & pâtisseries" },
-  { id: "libanais", emoji: "🧆", label: "Mezzés à partager & falafels" },
-  { id: "brunch", emoji: "🥞", label: "Brunch XXL sucré-salé" },
-  { id: "dessert", emoji: "🍨", label: "Bar à desserts & douceurs" },
+export type MenuOption = { id: string; Icon: LucideIcon; label: string };
+
+/**
+ * Propositions culinaires.
+ *
+ * Les icônes sont des analogies, pas des représentations littérales : lucide
+ * n'a ni sushi, ni pâtes, ni falafel. Le libellé porte la précision, l'icône
+ * n'est là que pour la lecture rapide.
+ */
+export const MENU_OPTIONS_PRESETS: MenuOption[] = [
+  { id: "sushi", Icon: Fish, label: "Bar à sushis & makis fondants" },
+  { id: "italien", Icon: Wheat, label: "Trattoria italienne secrète" },
+  { id: "burger", Icon: Sandwich, label: "Gourmet burgers & frites truffées" },
+  { id: "bistrot", Icon: Wine, label: "Bistrot français & planches" },
+  { id: "asiatique", Icon: Soup, label: "Ramen fumants & nouilles sautées" },
+  { id: "marocain", Icon: CookingPot, label: "Couscous royal & pâtisseries" },
+  { id: "libanais", Icon: Salad, label: "Mezzés à partager & falafels" },
+  { id: "brunch", Icon: EggFried, label: "Brunch XXL sucré-salé" },
+  { id: "dessert", Icon: Dessert, label: "Bar à desserts & douceurs" },
 ];
 
 export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> = {

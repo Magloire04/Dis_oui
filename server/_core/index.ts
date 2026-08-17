@@ -68,20 +68,19 @@ async function startServer() {
    * local, où le port 3000 peut être déjà pris.
    */
   const sousPassenger = Boolean(process.env.PASSENGER_BASE_URI || process.env.IN_PASSENGER);
+  const portDemande = Number(process.env.PORT) || 3000;
 
-  if (sousPassenger || process.env.PORT) {
-    const port = Number(process.env.PORT) || 3000;
-    server.listen(port, () => {
-      console.log(`Serveur démarré sur le port ${port}`);
-    });
-    return;
+  // Sous Passenger, l'adresse d'écoute est imposée : écouter ailleurs rendrait
+  // l'application introuvable. En développement en revanche, le port demandé
+  // peut être occupé par un autre projet — on en cherche alors un libre plutôt
+  // que d'échouer. Se fier à la seule présence de PORT ne suffisait pas : le
+  // fichier .env local le définit, ce qui désactivait la recherche.
+  const port = sousPassenger ? portDemande : await findAvailablePort(portDemande);
+
+  if (port !== portDemande) {
+    console.log(`Le port ${portDemande} est occupé, utilisation du port ${port}.`);
   }
 
-  const preferredPort = 3000;
-  const port = await findAvailablePort(preferredPort);
-  if (port !== preferredPort) {
-    console.log(`Le port ${preferredPort} est occupé, utilisation du port ${port}.`);
-  }
   server.listen(port, () => {
     console.log(`Serveur démarré sur http://localhost:${port}/`);
   });

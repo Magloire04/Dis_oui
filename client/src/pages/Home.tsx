@@ -22,7 +22,7 @@ export default function Home() {
   const { data: stats } = trpc.invitations.stats.useQuery();
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bgGradient} transition-all duration-700 font-sans text-stone-900`}>
+    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bgGradient} transition-all duration-700 font-sans ${currentTheme.textColor}`}>
       {/* Navigation */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-stone-200/50">
         <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
@@ -92,14 +92,14 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-24 md:pt-24 md:pb-32 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-12 items-center">
         <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-center lg:text-left">
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.15] sm:leading-[1.1] text-stone-900">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.15] sm:leading-[1.1]">
             {/* Le dégradé virait vers l'orange, absent de la charte ByTechnum. */}
             Transformez votre demande de rendez-vous en{" "}
             <span className="bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent">
               moment magique
             </span>.
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-stone-600 max-w-2xl mx-auto lg:mx-0 font-normal">
+          <p className={`text-base sm:text-lg md:text-xl ${currentTheme.mutedText} max-w-2xl mx-auto lg:mx-0 font-normal`}>
             {/* Les accents inverses autour de .ics venaient du markdown et
                 s'affichaient tels quels. */}
             Créez une invitation interactive inoubliable en moins de 2 minutes. Bouton fuyant taquin,
@@ -112,7 +112,7 @@ export default function Home() {
               className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white text-base font-medium rounded-full min-h-13 px-8 shadow-xl shadow-brand-600/30 flex items-center justify-center gap-3 transition-all sm:hover:scale-105">
               Créer un rendez-vous <ArrowRight className="w-5 h-5" />
             </Button>
-            <div className="flex items-start gap-2 text-sm text-stone-500 text-left">
+            <div className={`flex items-start gap-2 text-sm ${currentTheme.labelText} text-left`}>
               {/* « 100 % sécurisé » ne veut rien dire et ne s'appuie sur
                   aucun audit ; on annonce ce qui est vérifiable dans le code.
                   `shrink-0` + `mt-0.5` : l'icône se retrouvait orpheline à
@@ -126,26 +126,26 @@ export default function Home() {
               étaient inventées : « 2 600+ » en repli d'un compteur serveur qui
               en annonçait 1 428, un taux de 92 % et un poids de page jamais
               mesurés. */}
-          <div className="pt-8 grid grid-cols-3 gap-6 border-t border-stone-200/60 text-center lg:text-left">
+          <div className="pt-8 grid grid-cols-3 gap-6 border-t border-current/15 text-center lg:text-left">
             <div>
-              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">
+              <p className="text-2xl md:text-3xl font-extrabold">
                 {stats ? stats.totalCreated.toLocaleString("fr-FR") : "—"}
               </p>
-              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Invitations créées</p>
+              <p className={`text-xs ${currentTheme.labelText} uppercase tracking-wider mt-0.5`}>Invitations créées</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">
+              <p className="text-2xl md:text-3xl font-extrabold">
                 {stats && stats.totalCreated > 0
                   ? `${Math.round((stats.totalResponses / stats.totalCreated) * 100)} %`
                   : "—"}
               </p>
-              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Taux de réponse</p>
+              <p className={`text-xs ${currentTheme.labelText} uppercase tracking-wider mt-0.5`}>Taux de réponse</p>
             </div>
             <div>
-              <p className="text-2xl md:text-3xl font-extrabold text-stone-900">
+              <p className="text-2xl md:text-3xl font-extrabold">
                 {Object.keys(THEMES).length}
               </p>
-              <p className="text-xs text-stone-500 uppercase tracking-wider mt-0.5">Thèmes animés</p>
+              <p className={`text-xs ${currentTheme.labelText} uppercase tracking-wider mt-0.5`}>Thèmes animés</p>
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function Home() {
               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
               
               <div className="z-10 pt-6">
-                <span className="inline-block px-3 py-1 rounded-full bg-white/60 backdrop-blur text-xs font-semibold text-stone-700">
+                <span className="inline-block px-3 py-1 rounded-full bg-white/90 backdrop-blur text-xs font-semibold text-stone-700">
                   Thème : {currentTheme.name}
                 </span>
               </div>
@@ -167,10 +167,10 @@ export default function Home() {
                 <div className="w-20 h-20 mx-auto rounded-3xl bg-white shadow-xl flex items-center justify-center text-3xl animate-bounce">
                   💌
                 </div>
-                <h3 className="text-xl font-bold text-stone-900">
+                <h3 className={`text-xl font-bold ${currentTheme.textColor}`}>
                   Julie, tu veux sortir avec moi ?
                 </h3>
-                <p className="text-xs text-stone-600">
+                <p className={`text-xs ${currentTheme.mutedText}`}>
                   Une invitation exclusive de Thomas
                 </p>
               </div>
@@ -180,7 +180,7 @@ export default function Home() {
                     pas l'habillage de l'application : le bouton doit donc
                     suivre `currentTheme`, et non la couleur de marque. */}
                 <div className={`w-full py-3 rounded-xl ${currentTheme.buttonBg} font-semibold text-sm shadow-md`}>
-                  Oui, avec joie ! ✨
+                  Oui, avec joie !
                 </div>
                 <div className="w-full py-2 rounded-xl bg-white/80 text-stone-700 font-medium text-xs">
                   Non (impossible)
@@ -192,7 +192,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="px-6 py-20 bg-white/60 backdrop-blur border-y border-stone-200/50">
+      <section id="how-it-works" className="px-6 py-20 bg-white/90 backdrop-blur border-y border-stone-200/50">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-3">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-stone-900">
@@ -240,10 +240,10 @@ export default function Home() {
       {/* Themes Gallery */}
       <section id="themes" className="px-6 py-20 max-w-6xl mx-auto space-y-12">
         <div className="text-center space-y-3">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-stone-900">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
             Sept thèmes visuels et ambiances uniques
           </h2>
-          <p className="text-stone-600 max-w-xl mx-auto">
+          <p className={`${currentTheme.mutedText} max-w-xl mx-auto`}>
             Chaque thème possède sa propre palette, ses animations de fond et son atmosphère. Cliquez pour tester en direct.
           </p>
         </div>
@@ -266,8 +266,8 @@ export default function Home() {
                     : "hover:scale-102 border-stone-200/60 shadow-md"
                 }`}
               >
-                <span className="w-12 h-12 rounded-xl bg-white/80 shadow flex items-center justify-center text-xl">
-                  {theme.emoji}
+                <span className="w-12 h-12 rounded-xl bg-white/85 shadow flex items-center justify-center">
+                  <theme.Icon className="w-6 h-6 text-ink-800" strokeWidth={1.75} />
                 </span>
                 <span className={theme.textColor}>
                   <span className="block font-bold text-sm">{theme.name}</span>
@@ -282,7 +282,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="px-6 py-20 bg-white/60 backdrop-blur border-t border-stone-200/50">
+      <section id="faq" className="px-6 py-20 bg-white/90 backdrop-blur border-t border-stone-200/50">
         <div className="max-w-4xl mx-auto space-y-12">
           <div className="text-center space-y-3">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-stone-900">

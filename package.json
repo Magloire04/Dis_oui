@@ -10,6 +10,7 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
+    "contrastes": "tsx scripts/verifier-contrastes.mjs",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:migrate": "node scripts/migrate.mjs"
   },

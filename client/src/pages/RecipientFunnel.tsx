@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Download } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Calendar, Download, MailX, Sparkles, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RecipientFunnel() {
@@ -58,7 +59,7 @@ export default function RecipientFunnel() {
   if (error || !invitation) {
     return (
       <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
-        <div className="text-4xl">💌</div>
+        <MailX className="w-10 h-10 opacity-70" strokeWidth={1.5} />
         <h1 className="text-2xl font-bold">Invitation introuvable ou expirée</h1>
         <p className="text-sm text-stone-400 max-w-md">
           Ce lien a peut-être expiré ou le créateur l'a désactivé.
@@ -90,13 +91,15 @@ export default function RecipientFunnel() {
 
   // `includeSurprise` était enregistré par l'éditeur mais n'apparaissait nulle
   // part dans le funnel : l'option n'a jamais été proposée au destinataire.
-  const menuChoices: Array<{ id: string; emoji: string; label: string }> = [
+  const menuChoices: Array<{ id: string; Icon: LucideIcon; label: string }> = [
     ...((config.selectedMenuOptions as string[] | undefined) ?? []).map(optId => {
       const preset = MENU_OPTIONS_PRESETS.find(m => m.id === optId);
-      return { id: optId, emoji: preset?.emoji ?? "🍽️", label: preset?.label ?? optId };
+      // Un identifiant inconnu vient d une invitation creee avant un
+      // remaniement du catalogue : on l affiche tel quel, avec une icone neutre.
+      return { id: optId, Icon: preset?.Icon ?? UtensilsCrossed, label: preset?.label ?? optId };
     }),
     ...(config.includeSurprise
-      ? [{ id: "surprise", emoji: "✨", label: "Surprends-moi" }]
+      ? [{ id: "surprise", Icon: Sparkles, label: "Surprends-moi" }]
       : []),
   ];
 
@@ -213,7 +216,7 @@ export default function RecipientFunnel() {
             <Button
               onClick={() => setScreen(1)}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100`}>
-              Ouvrir l'enveloppe 🔓
+              Ouvrir l'enveloppe
             </Button>
           </Card>
         )}
@@ -240,7 +243,7 @@ export default function RecipientFunnel() {
               <Button
                 onClick={handleYes}
                 className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl transition-all hover:scale-105 motion-reduce:hover:scale-100 z-10`}>
-                Oui, avec immense plaisir ✨
+                Oui, avec immense plaisir
               </Button>
 
               {behavior !== "desactive" && (
@@ -262,7 +265,7 @@ export default function RecipientFunnel() {
                   }}
                   className={`w-full py-3 rounded-2xl border font-semibold text-xs transition-transform duration-200 disabled:opacity-40 disabled:cursor-not-allowed motion-reduce:transition-none ${theme.optionIdle}`}
                 >
-                  {noButtonExhausted ? "Le bouton « Non » a rendu les armes 🏳️" : "Non (refuser)"}
+                  {noButtonExhausted ? "Le bouton « Non » a rendu les armes" : "Non (refuser)"}
                 </button>
               )}
 
@@ -292,7 +295,7 @@ export default function RecipientFunnel() {
             <Button
               onClick={() => setScreen(3)}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl`}>
-              Continuer vers les créneaux 📅
+              Continuer vers les créneaux
             </Button>
           </Card>
         )}
@@ -338,7 +341,7 @@ export default function RecipientFunnel() {
               onClick={() => setScreen(4)}
               disabled={!selectedSlot}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl disabled:opacity-40`}>
-              {selectedSlot ? "Étape suivante : Le menu 🍽️" : "Choisis un créneau pour continuer"}
+              {selectedSlot ? "Étape suivante : Le menu" : "Choisis un créneau pour continuer"}
             </Button>
           </Card>
         )}
@@ -368,7 +371,7 @@ export default function RecipientFunnel() {
                       isSelected ? theme.optionSelected : theme.optionIdle
                     }`}
                   >
-                    <span className="text-xl">{choice.emoji}</span>
+                    <choice.Icon className="w-5 h-5 shrink-0 opacity-80" strokeWidth={1.75} />
                     <span className="text-sm">{choice.label}</span>
                   </button>
                 );
@@ -408,7 +411,7 @@ export default function RecipientFunnel() {
               onClick={handleFinalSubmit}
               disabled={respondMutation.isPending}
               className={`w-full ${theme.buttonBg} rounded-2xl py-4 font-bold text-base shadow-xl`}>
-              {respondMutation.isPending ? "Validation..." : "Valider mon billet de confirmation ✨"}
+              {respondMutation.isPending ? "Validation..." : "Valider mon billet de confirmation"}
             </Button>
           </Card>
         )}
