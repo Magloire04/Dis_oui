@@ -4,6 +4,7 @@ import { resolveTheme, MENU_OPTIONS_PRESETS } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
 import { normalizeDateSlots, slotStartsAt, type DateSlot } from "@shared/invitationConfig";
 import { buildRendezVousIcs } from "@shared/ics";
+import { lienWhatsApp, messageWhatsApp } from "@shared/whatsapp";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { LucideIcon } from "lucide-react";
-import { Calendar, Download, MailX, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Calendar, Download, MailX, MessageCircle, Sparkles, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RecipientFunnel() {
@@ -102,6 +103,28 @@ export default function RecipientFunnel() {
       ? [{ id: "surprise", Icon: Sparkles, label: "Surprends-moi" }]
       : []),
   ];
+
+  // Message pré-rempli pour prévenir le créateur, une fois le créneau retenu.
+  // Il ne porte pas le lien de suivi : celui-ci contient le jeton du créateur,
+  // qui donne accès à son adresse et, sur une invitation à réponses multiples,
+  // aux réponses des autres destinataires. Le créateur le reçoit par courriel.
+  const lienNotificationWhatsApp =
+    invitation.creatorPhone && selectedSlot
+      ? lienWhatsApp(
+          invitation.creatorPhone,
+          messageWhatsApp({
+            recipientName: config.recipientName,
+            creneau: selectedSlot.label,
+            dateLisible: slotStartsAt(selectedSlot)
+              ? format(new Date(slotStartsAt(selectedSlot)!), "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr })
+              : undefined,
+            menu: selectedMenu || undefined,
+            lieu: customVenue || undefined,
+            note: customNote || undefined,
+            lienInvitation: window.location.href,
+          })
+        )
+      : null;
 
   const maxRefusals: number = config.maxRefusals ?? 12;
   const behavior: string = config.noButtonBehavior ?? "fuyant";
@@ -471,6 +494,20 @@ export default function RecipientFunnel() {
               <p className={`text-[11px] ${theme.labelText}`}>
                 Ce créneau n'a pas de date précise : aucun fichier calendrier n'est disponible.
               </p>
+            )}
+
+            {/* Proposé seulement si le créateur a renseigné un numéro : sans
+                lui, le bouton ouvrirait une conversation dans le vide. */}
+            {lienNotificationWhatsApp && (
+              <a
+                href={lienNotificationWhatsApp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full ${theme.optionIdle} border rounded-2xl py-3 font-semibold text-xs flex items-center justify-center gap-2 min-h-11`}
+              >
+                <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                Prévenir {config.senderName} sur WhatsApp
+              </a>
             )}
           </Card>
         )}

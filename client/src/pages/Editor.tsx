@@ -20,6 +20,7 @@ import {
 } from "@shared/invitationConfig";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { numeroValide } from "@shared/whatsapp";
 import { QrCode as QrCodeSvg } from "@/components/QrCode";
 import {
   ArrowLeft,
@@ -177,6 +178,7 @@ export default function Editor() {
 
   // Delivery
   const [creatorEmail, setCreatorEmail] = useState("");
+  const [creatorPhone, setCreatorPhone] = useState("");
   const [linkDuration, setLinkDuration] = useState(30);
   const [allowMultiple, setAllowMultiple] = useState(false);
 
@@ -219,7 +221,13 @@ export default function Editor() {
     if (!saved) return;
 
     try {
-      const { config, creatorEmail: savedEmail, linkDuration: savedDuration, allowMultiple: savedMultiple } =
+      const {
+        config,
+        creatorEmail: savedEmail,
+        creatorPhone: savedPhone,
+        linkDuration: savedDuration,
+        allowMultiple: savedMultiple,
+      } =
         JSON.parse(saved);
 
       const parsed = invitationConfigSchema.safeParse(config);
@@ -246,6 +254,7 @@ export default function Editor() {
       }
 
       if (typeof savedEmail === "string") setCreatorEmail(savedEmail);
+      if (typeof savedPhone === "string") setCreatorPhone(savedPhone);
       if (LINK_DURATIONS.includes(savedDuration)) setLinkDuration(savedDuration);
       if (typeof savedMultiple === "boolean") setAllowMultiple(savedMultiple);
     } catch {
@@ -266,7 +275,7 @@ export default function Editor() {
   useEffect(() => {
     localStorage.setItem(
       DRAFT_STORAGE_KEY,
-      JSON.stringify({ config: buildConfigDraft(), creatorEmail, linkDuration, allowMultiple })
+      JSON.stringify({ config: buildConfigDraft(), creatorEmail, creatorPhone, linkDuration, allowMultiple })
     );
   });
 
@@ -302,6 +311,7 @@ export default function Editor() {
     createMutation.mutate({
       creatorEmail: creatorEmail.trim(),
       allowMultiple,
+      creatorPhone: creatorPhone.trim() || undefined,
       expiresDays: linkDuration,
       config: parsed.data,
     });
@@ -893,6 +903,35 @@ export default function Editor() {
                     className="rounded-xl"
                   />
                   <p className="text-[11px] text-stone-500">C'est ici que vous recevrez la réponse détaillée avec le fichier `.ics`.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="creatorPhone" className="text-xs font-semibold text-stone-700">
+                    Numéro WhatsApp <span className="font-normal text-stone-500">(facultatif)</span>
+                  </label>
+                  <Input
+                    id="creatorPhone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="+229 01 96 00 00 00"
+                    value={creatorPhone}
+                    onChange={e => setCreatorPhone(e.target.value)}
+                    className="rounded-xl"
+                    aria-describedby="creatorPhone-consequence"
+                  />
+                  {/* La conséquence est écrite sous le champ : c'est le fait de
+                      le remplir qui vaut consentement, il faut donc que ce
+                      qu'on accepte soit lisible avant de le remplir. */}
+                  <p id="creatorPhone-consequence" className="text-[11px] text-stone-500">
+                    Le destinataire pourra vous prévenir en un clic sur WhatsApp. Votre numéro lui
+                    sera alors visible. Laissez vide pour ne recevoir que l'e-mail.
+                  </p>
+                  {creatorPhone.trim() !== "" && !numeroValide(creatorPhone) && (
+                    <p className="text-[11px] font-semibold text-red-600">
+                      Indiquez le numéro au format international, indicatif pays compris.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

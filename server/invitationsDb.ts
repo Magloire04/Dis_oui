@@ -110,6 +110,7 @@ export async function checkLoginAttempt(ipHash: string): Promise<boolean> {
 export async function createInvitationRecord(data: {
   slug: string;
   creatorEmail: string;
+  creatorPhone: string | null;
   creatorToken: string;
   config: unknown;
   expiresAt: Date;

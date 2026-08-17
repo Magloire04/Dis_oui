@@ -24,6 +24,7 @@ import {
   userAuthoredText,
   type InvitationConfig,
 } from "@shared/invitationConfig";
+import { creatorPhoneSchema } from "@shared/whatsapp";
 
 const SLUG_LENGTH = 7;
 const CREATOR_TOKEN_LENGTH = 32;
@@ -50,6 +51,7 @@ export const invitationsRouter = router({
     .input(
       z.object({
         creatorEmail: z.email().max(320),
+        creatorPhone: creatorPhoneSchema,
         config: invitationConfigSchema,
         expiresDays: z
           .number()
@@ -86,6 +88,7 @@ export const invitationsRouter = router({
       const invitation = await createInvitationRecord({
         slug: nanoid(SLUG_LENGTH),
         creatorEmail: input.creatorEmail,
+        creatorPhone: input.creatorPhone ?? null,
         creatorToken: nanoid(CREATOR_TOKEN_LENGTH),
         config: input.config,
         expiresAt: new Date(Date.now() + input.expiresDays * 24 * 60 * 60 * 1000),
@@ -135,6 +138,9 @@ export const invitationsRouter = router({
         config: invitation.config,
         expiresAt: invitation.expiresAt,
         allowMultiple: invitation.allowMultiple,
+        // Divulgation voulue, couverte par le consentement recueilli à la
+        // saisie : sans lui, aucun bouton WhatsApp ne peut être proposé.
+        creatorPhone: invitation.creatorPhone,
         openedAt: invitation.openedAt,
         alreadyResponded,
         response: alreadyResponded ? responses[responses.length - 1].answer : undefined,

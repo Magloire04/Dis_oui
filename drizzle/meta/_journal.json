@@ -36,6 +36,13 @@
       "when": 1786566462427,
       "tag": "0004_bouncy_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786970676491,
+      "tag": "0005_familiar_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }
