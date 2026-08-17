@@ -322,7 +322,8 @@ export default function Editor() {
           <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center gap-3">
             <QrCodeSvg value={fullRecipientUrl} size={168} title={`QR code de l'invitation pour ${recipientName}`} />
             <p className="text-xs text-stone-500 max-w-xs">
-              Faites scanner ce code pour ouvrir l'invitation directement sur son téléphone.
+              Faites scanner ce code par le destinataire pour ouvrir l'invitation directement sur
+              son téléphone.
             </p>
           </div>
 
