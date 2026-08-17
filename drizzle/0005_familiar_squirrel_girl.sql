@@ -1,0 +1,1 @@
+ALTER TABLE `invitations` ADD `creatorPhone` varchar(24);

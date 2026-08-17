@@ -47,6 +47,13 @@ export default function Confidentialite() {
               une newsletter.
             </li>
             <li>
+              <strong>Votre numéro WhatsApp</strong>, si vous choisissez de le renseigner — le
+              champ est facultatif. Il sert à afficher au destinataire un bouton lui permettant de
+              vous prévenir en un clic. <strong>Le destinataire le voit alors</strong> : le
+              renseigner vaut consentement à cette transmission. Laissé vide, aucun numéro n'est
+              enregistré et aucun bouton n'est proposé.
+            </li>
+            <li>
               <strong>Le contenu de l'invitation</strong> : prénoms, question, créneaux, menus,
               thème et messages libres que vous rédigez.
             </li>

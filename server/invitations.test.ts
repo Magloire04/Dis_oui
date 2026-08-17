@@ -127,8 +127,34 @@ describe("invitations.getBySlug", () => {
 
     // Ce dont le destinataire a besoin reste présent.
     expect(champs.sort()).toEqual(
-      ["allowMultiple", "alreadyResponded", "config", "expiresAt", "openedAt", "response", "slug"].sort()
+      ["allowMultiple", "alreadyResponded", "config", "creatorPhone", "expiresAt", "openedAt", "response", "slug"].sort()
     );
+  });
+
+  it("transmet le numéro WhatsApp du créateur, et lui seul", async () => {
+    // Divulgation voulue et couverte par le consentement recueilli à la
+    // saisie : c'est ce numéro qui arme le bouton de notification. Le reste
+    // des coordonnées du créateur doit rester en dehors.
+    const api = caller("198.51.100.77");
+    const { slug } = await api.invitations.create({
+      creatorEmail: "createur@exemple.fr",
+      creatorPhone: "+229 01 96 00 00 00",
+      config: validConfig,
+      expiresHours: 24,
+      allowMultiple: false,
+    });
+
+    const vue = await api.invitations.getBySlug({ slug });
+    expect(vue.creatorPhone).toBe("2290196000000");
+    expect(JSON.stringify(vue)).not.toContain("createur@exemple.fr");
+  });
+
+  it("n'expose aucun numéro quand le créateur n'en a pas donné", async () => {
+    const api = caller("198.51.100.78");
+    const { slug } = await createInvitation(api);
+    await expect(api.invitations.getBySlug({ slug })).resolves.toMatchObject({
+      creatorPhone: null,
+    });
   });
 
   it("signale une invitation déjà répondue", async () => {
