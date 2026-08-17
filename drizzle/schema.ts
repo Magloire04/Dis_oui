@@ -19,6 +19,9 @@ export const invitations = mysqlTable("invitations", {
   id: int("id").autoincrement().primaryKey(),
   slug: varchar("slug", { length: 12 }).notNull().unique(),
   creatorEmail: text("creatorEmail").notNull(),
+  // Facultatif : le renseigner vaut consentement à ce que le destinataire le
+  // voie, puisque `wa.me` l'affiche dès l'ouverture de la conversation.
+  creatorPhone: varchar("creatorPhone", { length: 24 }),
   creatorToken: varchar("creatorToken", { length: 64 }).notNull().unique(),
   config: json("config").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),

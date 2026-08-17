@@ -6,6 +6,7 @@ import { hashIp } from "./invitationsDb";
 import { ENV } from "./_core/env";
 import { invitations, rateLimits } from "../drizzle/schema";
 import type { TrpcContext } from "./_core/context";
+import { LINK_DURATIONS, libelleDuree } from "@shared/invitationConfig";
 import type { InvitationConfig } from "@shared/invitationConfig";
 
 function createTestContext(ip = "127.0.0.1"): TrpcContext {
@@ -51,7 +52,7 @@ const validConfig: InvitationConfig = {
       durationMin: 120,
     },
   ],
-  selectedMenuOptions: ["sushi", "italien"],
+  selectedMenuOptions: ["amiwo", "bistrot"],
   includeSurprise: true,
   includeVenue: true,
   themeKey: "blush",
@@ -64,7 +65,7 @@ async function createInvitation(api: ReturnType<typeof caller>) {
   return await api.invitations.create({
     creatorEmail: "createur@exemple.fr",
     config: validConfig,
-    expiresDays: 30,
+    expiresHours: 24,
     allowMultiple: false,
   });
 }
@@ -107,6 +108,55 @@ describe("invitations.getBySlug", () => {
     expect(third.openedAt).toEqual(second.openedAt);
   });
 
+  it("ne divulgue ni l'adresse du créateur, ni son jeton de suivi, ni l'empreinte d'IP", async () => {
+    // La procédure est publique et le lien destinataire circule. Elle
+    // renvoyait la ligne entière : le jeton exposé ouvre la page de suivi que
+    // l'application présente comme privée.
+    const api = caller();
+    const { slug, creatorToken } = await createInvitation(api);
+
+    const vue = await api.invitations.getBySlug({ slug });
+    const champs = Object.keys(vue);
+
+    for (const interdit of ["creatorEmail", "creatorToken", "ipHash", "id"]) {
+      expect(champs, `${interdit} ne doit pas figurer dans la réponse`).not.toContain(interdit);
+    }
+    // Contrôle par la valeur : un champ renommé passerait le contrôle par clé.
+    expect(JSON.stringify(vue)).not.toContain(creatorToken);
+    expect(JSON.stringify(vue)).not.toContain("createur@exemple.fr");
+
+    // Ce dont le destinataire a besoin reste présent.
+    expect(champs.sort()).toEqual(
+      ["allowMultiple", "alreadyResponded", "config", "creatorPhone", "expiresAt", "openedAt", "response", "slug"].sort()
+    );
+  });
+
+  it("transmet le numéro WhatsApp du créateur, et lui seul", async () => {
+    // Divulgation voulue et couverte par le consentement recueilli à la
+    // saisie : c'est ce numéro qui arme le bouton de notification. Le reste
+    // des coordonnées du créateur doit rester en dehors.
+    const api = caller("198.51.100.77");
+    const { slug } = await api.invitations.create({
+      creatorEmail: "createur@exemple.fr",
+      creatorPhone: "+229 01 96 00 00 00",
+      config: validConfig,
+      expiresHours: 24,
+      allowMultiple: false,
+    });
+
+    const vue = await api.invitations.getBySlug({ slug });
+    expect(vue.creatorPhone).toBe("2290196000000");
+    expect(JSON.stringify(vue)).not.toContain("createur@exemple.fr");
+  });
+
+  it("n'expose aucun numéro quand le créateur n'en a pas donné", async () => {
+    const api = caller("198.51.100.78");
+    const { slug } = await createInvitation(api);
+    await expect(api.invitations.getBySlug({ slug })).resolves.toMatchObject({
+      creatorPhone: null,
+    });
+  });
+
   it("signale une invitation déjà répondue", async () => {
     const api = caller();
     const { slug } = await createInvitation(api);
@@ -131,7 +181,7 @@ describe("invitations.respond", () => {
     const { slug } = await api.invitations.create({
       creatorEmail: "createur@exemple.fr",
       config: validConfig,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: true,
     });
 
@@ -243,7 +293,7 @@ describe("validation de la configuration", () => {
         creatorEmail: "createur@exemple.fr",
         // @ts-expect-error - config volontairement tronquée
         config: { recipientName: "Julie" },
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).rejects.toThrow();
@@ -255,18 +305,18 @@ describe("validation de la configuration", () => {
         creatorEmail: "createur@exemple.fr",
         // @ts-expect-error - thème hors énumération
         config: { ...validConfig, themeKey: "arc-en-ciel" },
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).rejects.toThrow();
   });
 
-  it("refuse une durée de validité hors 7 / 30 / 90 jours", async () => {
+  it("refuse une durée de validité hors 1 / 2 / 5 / 24 heures", async () => {
     await expect(
       caller().invitations.create({
         creatorEmail: "createur@exemple.fr",
         config: validConfig,
-        expiresDays: 3650,
+        expiresHours: 720,
         allowMultiple: false,
       })
     ).rejects.toThrow();
@@ -277,7 +327,7 @@ describe("validation de la configuration", () => {
       caller().invitations.create({
         creatorEmail: "pas-une-adresse",
         config: validConfig,
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).rejects.toThrow();
@@ -291,7 +341,7 @@ describe("filtrage de contenu", () => {
       api.invitations.create({
         creatorEmail: "createur@exemple.fr",
         config: { ...validConfig, question: "Un verre la semaine prochaine ?" },
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).resolves.toHaveProperty("slug");
@@ -302,7 +352,7 @@ describe("filtrage de contenu", () => {
       caller().invitations.create({
         creatorEmail: "createur@exemple.fr",
         config: { ...validConfig, finalMessage: "Un message plein de haine" },
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).rejects.toThrow(/modération/);
@@ -315,7 +365,7 @@ describe("filtrage de contenu", () => {
       caller().invitations.create({
         creatorEmail: "createur@exemple.fr",
         config: { ...validConfig, themeKey: "sepia", relation: "crush" },
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).resolves.toHaveProperty("slug");
@@ -388,5 +438,55 @@ describe("rate limiting", () => {
 
     const second = caller("203.0.113.21");
     await expect(createInvitation(second)).resolves.toHaveProperty("slug");
+  });
+});
+
+describe("durée de validité en heures", () => {
+  /**
+   * Le calcul multipliait par 24. Rien ne l'aurait signalé après la bascule :
+   * une invitation d'une heure serait restée valable un jour entier, et la
+   * page de confidentialité aurait promis le contraire.
+   */
+  // Une IP par appel : le limiteur bloque à trois créations par heure, et il
+  // y a quatre paliers à couvrir.
+  let compteurIp = 0;
+  async function creerAvecDuree(expiresHours: number) {
+    const api = caller(`198.51.100.${++compteurIp}`);
+    const { creatorToken } = await api.invitations.create({
+      creatorEmail: "createur@exemple.fr",
+      config: validConfig,
+      expiresHours,
+      allowMultiple: false,
+    });
+    const { invitation } = await api.invitations.getByToken({ token: creatorToken });
+    return invitation;
+  }
+
+  it("fait expirer au bout du nombre d'heures demandé, pas de jours", async () => {
+    const avant = Date.now();
+    const invitation = await creerAvecDuree(1);
+    const ecartHeures = (new Date(invitation.expiresAt).getTime() - avant) / 3_600_000;
+    expect(ecartHeures).toBeGreaterThan(0.9);
+    expect(ecartHeures).toBeLessThan(1.1);
+  });
+
+  it("accepte chacun des paliers proposés par l'éditeur", async () => {
+    for (const heures of LINK_DURATIONS) {
+      const invitation = await creerAvecDuree(heures);
+      const ecart = (new Date(invitation.expiresAt).getTime() - new Date(invitation.createdAt).getTime()) / 3_600_000;
+      expect(Math.round(ecart), `palier de ${heures} h`).toBe(heures);
+    }
+  });
+
+  it("refuse une durée qui n'est pas un palier proposé", async () => {
+    // 30 était l'ancien défaut en jours : il ne doit plus passer.
+    for (const horsPalier of [0, 3, 30, 90]) {
+      await expect(creerAvecDuree(horsPalier), `${horsPalier} h`).rejects.toThrow();
+    }
+  });
+
+  it("accorde le libellé au singulier comme au pluriel", () => {
+    expect(libelleDuree(1)).toBe("1 heure");
+    expect(libelleDuree(24)).toBe("24 heures");
   });
 });

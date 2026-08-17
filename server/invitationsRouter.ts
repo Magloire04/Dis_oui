@@ -21,9 +21,11 @@ import {
   invitationAnswerSchema,
   invitationConfigSchema,
   LINK_DURATIONS,
+  DEFAULT_LINK_DURATION,
   userAuthoredText,
   type InvitationConfig,
 } from "@shared/invitationConfig";
+import { creatorPhoneSchema } from "@shared/whatsapp";
 
 const SLUG_LENGTH = 7;
 const CREATOR_TOKEN_LENGTH = 32;
@@ -50,13 +52,14 @@ export const invitationsRouter = router({
     .input(
       z.object({
         creatorEmail: z.email().max(320),
+        creatorPhone: creatorPhoneSchema,
         config: invitationConfigSchema,
-        expiresDays: z
+        expiresHours: z
           .number()
           .refine((n): n is (typeof LINK_DURATIONS)[number] => (LINK_DURATIONS as readonly number[]).includes(n), {
-            message: `La durée de validité doit valoir ${LINK_DURATIONS.join(", ")} jours.`,
+            message: `La durée de validité doit valoir ${LINK_DURATIONS.join(", ")} heures.`,
           })
-          .default(30),
+          .default(DEFAULT_LINK_DURATION),
         allowMultiple: z.boolean().default(false),
       })
     )
@@ -86,9 +89,10 @@ export const invitationsRouter = router({
       const invitation = await createInvitationRecord({
         slug: nanoid(SLUG_LENGTH),
         creatorEmail: input.creatorEmail,
+        creatorPhone: input.creatorPhone ?? null,
         creatorToken: nanoid(CREATOR_TOKEN_LENGTH),
         config: input.config,
-        expiresAt: new Date(Date.now() + input.expiresDays * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + input.expiresHours * 60 * 60 * 1000),
         allowMultiple: input.allowMultiple,
         ipHash,
       });
@@ -101,6 +105,13 @@ export const invitationsRouter = router({
       };
     }),
 
+  /**
+   * Vue destinataire d'une invitation.
+   *
+   * Procédure publique : le lien se partage par message, par capture d'écran,
+   * et finit par circuler. Elle ne doit donc rendre que ce que le destinataire
+   * a besoin de voir.
+   */
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string().min(1).max(12) }))
     .query(async ({ input }) => {
@@ -121,8 +132,17 @@ export const invitationsRouter = router({
       const responses = await getResponsesForInvitation(invitation.id);
       const alreadyResponded = responses.length > 0 && !invitation.allowMultiple;
 
+      // Champs énumérés, et non `...invitation` : la ligne entière partait
+      // jusqu'ici vers qui détenait le lien, jeton de suivi compris.
       return {
-        ...invitation,
+        slug: invitation.slug,
+        config: invitation.config,
+        expiresAt: invitation.expiresAt,
+        allowMultiple: invitation.allowMultiple,
+        // Divulgation voulue, couverte par le consentement recueilli à la
+        // saisie : sans lui, aucun bouton WhatsApp ne peut être proposé.
+        creatorPhone: invitation.creatorPhone,
+        openedAt: invitation.openedAt,
         alreadyResponded,
         response: alreadyResponded ? responses[responses.length - 1].answer : undefined,
       };

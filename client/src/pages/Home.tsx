@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { THEMES } from "@/lib/themes";
 import { trpc } from "@/lib/trpc";
-import type { ThemeId } from "@shared/invitationConfig";
+import { LINK_DURATIONS, type ThemeId } from "@shared/invitationConfig";
 import { ArrowRight, ShieldCheck, HelpCircle, Menu, X } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 
@@ -317,7 +317,7 @@ export default function Home() {
                 <HelpCircle className="w-5 h-5 text-brand-600" /> Combien de temps le lien reste-t-il actif ?
               </h3>
               <p className="text-sm text-stone-600">
-                Vous pouvez choisir une durée de vie de 7, 30 ou 90 jours lors de la création. Passé ce délai, l'invitation est automatiquement purgée (APDP).
+                Vous pouvez choisir une durée de vie de {LINK_DURATIONS.join(", ")} heures lors de la création. Passé ce délai, l'invitation est automatiquement purgée (APDP).
               </p>
             </div>
 

@@ -255,23 +255,28 @@ export async function supprimerInvitation(slug: string): Promise<boolean> {
   return (header.affectedRows ?? 0) > 0;
 }
 
-export type RepartitionDuree = { jours: number; total: number };
+export type RepartitionDuree = { heures: number; total: number };
 
-/** Durées de validité retenues, déduites de l'écart création / expiration. */
+/**
+ * Durées de validité retenues, déduites de l'écart création / expiration.
+ *
+ * En heures depuis que les paliers sont horaires : arrondi au jour, les
+ * quatre choix possibles retombaient tous sur 0 ou 1, et la ventilation ne
+ * distinguait plus rien.
+ */
 export async function repartitionDurees(): Promise<RepartitionDuree[]> {
   const db = await requireDb();
 
+  const enHeures = sql<number>`timestampdiff(hour, ${invitations.createdAt}, ${invitations.expiresAt})`;
+
   const rows = await db
-    .select({
-      jours: sql<number>`round(timestampdiff(hour, ${invitations.createdAt}, ${invitations.expiresAt}) / 24)`,
-      n: sql<number>`count(*)`,
-    })
+    .select({ heures: enHeures, n: sql<number>`count(*)` })
     .from(invitations)
-    .groupBy(sql`round(timestampdiff(hour, ${invitations.createdAt}, ${invitations.expiresAt}) / 24)`);
+    .groupBy(enHeures);
 
   return rows
-    .map(r => ({ jours: Number(r.jours), total: Number(r.n) }))
-    .sort((a, b) => a.jours - b.jours);
+    .map(r => ({ heures: Number(r.heures), total: Number(r.n) }))
+    .sort((a, b) => a.heures - b.heures);
 }
 
 /** Vérifie que la base répond, et mesure le temps d'aller-retour. */

@@ -54,7 +54,7 @@ const configValide: InvitationConfig = {
   selectedDates: [
     { id: "a", label: "vendredi", startsAt: "2026-08-21T18:00:00.000Z", durationMin: 120 },
   ],
-  selectedMenuOptions: ["sushi"],
+  selectedMenuOptions: ["amiwo"],
   includeSurprise: false,
   includeVenue: false,
   themeKey: "bytechnum",
@@ -132,7 +132,7 @@ describe("statistiques d'usage", () => {
     await api.invitations.create({
       creatorEmail: "createur@exemple.fr",
       config: configValide,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: false,
     });
 
@@ -181,7 +181,7 @@ describe("journal d'exploitation", () => {
       api.invitations.create({
         creatorEmail: "createur@exemple.fr",
         config: { ...configValide, finalMessage: "Un message plein de haine" },
-        expiresDays: 30,
+        expiresHours: 24,
         allowMultiple: false,
       })
     ).rejects.toThrow();
@@ -202,13 +202,13 @@ describe("journal d'exploitation", () => {
     const sansReponse = await api.invitations.create({
       creatorEmail: "createur@exemple.fr",
       config: configValide,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: false,
     });
     const avecReponse = await api.invitations.create({
       creatorEmail: "createur@exemple.fr",
       config: configValide,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: false,
     });
     await api.invitations.respond({
@@ -235,7 +235,7 @@ describe("journal d'exploitation", () => {
     await api.invitations.create({
       creatorEmail: "secret@exemple.fr",
       config: configValide,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: false,
     });
 
@@ -257,7 +257,7 @@ describe("modération", () => {
     const { slug } = await api.invitations.create({
       creatorEmail: "createur@exemple.fr",
       config: configValide,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: false,
     });
 
@@ -328,7 +328,7 @@ describe("santé", () => {
     const { slug } = await api.invitations.create({
       creatorEmail: "createur@exemple.fr",
       config: configValide,
-      expiresDays: 30,
+      expiresHours: 24,
       allowMultiple: false,
     });
 

@@ -350,8 +350,9 @@ restant obligatoire — le diff est relu et la checklist remplie avant merge.
 Le service ne dépose ni cookie publicitaire, ni traceur tiers. Sont conservés
 l'e-mail du créateur, le contenu de l'invitation, la réponse du destinataire, et
 une empreinte irréversible de l'adresse IP du créateur — jamais l'adresse
-elle-même. Tout est supprimé à l'échéance choisie (7, 30 ou 90 jours) par une
-tâche horaire ; les empreintes d'IP au bout de 24 heures. Le détail figure sur
+elle-même. Tout est supprimé à l'échéance choisie (1, 2, 5 ou 24 heures) par une
+tâche qui passe tous les quarts d'heure ; les empreintes d'IP au bout de
+24 heures. Le détail figure sur
 la page `/confidentialite` de l'application.
 
 ---
