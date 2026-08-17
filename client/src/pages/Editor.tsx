@@ -41,6 +41,7 @@ import {
   RotateCcw,
   Send,
   Shrink,
+  Shuffle,
   Smile,
   Sparkle,
   Sparkles,
@@ -54,6 +55,18 @@ import { BrandMark } from "@/components/BrandMark";
 import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "dis_oui_draft";
+
+/**
+ * Tire une formulation au hasard parmi celles du ton, en évitant celle qui est
+ * déjà affichée : sans cette précaution, un tirage sur vingt-cinq redonnerait
+ * la même phrase et le bouton passerait pour cassé.
+ */
+function tirerQuestion(ton: Tone, exclure?: string): string {
+  const toutes = TONE_PRESETS[ton].questions;
+  const candidates = toutes.filter(q => q !== exclure);
+  const parmi = candidates.length > 0 ? candidates : toutes;
+  return parmi[Math.floor(Math.random() * parmi.length)];
+}
 
 // --- Créneaux ---------------------------------------------------------------
 
@@ -158,7 +171,10 @@ export default function Editor() {
   const [relation, setRelation] = useState<Relation>("crush");
   const [tone, setTone] = useState<Tone>("doux");
 
-  const [question, setQuestion] = useState("Tu veux sortir avec moi ?");
+  const [question, setQuestion] = useState(() => tirerQuestion("doux"));
+  // Vrai dès que le créateur réécrit la question : changer de ton ne doit
+  // alors plus la remplacer.
+  const [questionPersonnalisee, setQuestionPersonnalisee] = useState(false);
   const [subtitle, setSubtitle] = useState("J'ai une surprise pour toi...");
   const [emoji, setEmoji] = useState("💌");
   const [noButtonBehavior, setNoButtonBehavior] = useState<NoButtonBehavior>("fuyant");
@@ -256,6 +272,7 @@ export default function Editor() {
         setRelation(c.relation);
         setTone(c.tone);
         setQuestion(c.question);
+        setQuestionPersonnalisee(true);
         setSubtitle(c.subtitle);
         setEmoji(c.emoji);
         setNoButtonBehavior(c.noButtonBehavior);
@@ -281,20 +298,64 @@ export default function Editor() {
     }
   }, []);
 
-  // Update teases when tone changes
+  /**
+   * Change de ton et propose une nouvelle formulation.
+   *
+   * Le tirage évite la formulation affichée : recliquer sur le même ton donnait
+   * une chance sur vingt-cinq de ne rien changer, ce qui se lit comme un bouton
+   * cassé.
+   *
+   * Une question réécrite par le créateur n'est jamais écrasée — c'est son
+   * texte, changer de ton ne doit pas le lui reprendre.
+   */
   const handleToneChange = (newTone: Tone) => {
     setTone(newTone);
-    setQuestion(TONE_PRESETS[newTone].question);
     setTeases(TONE_PRESETS[newTone].teases);
+
+    if (questionPersonnalisee) return;
+    setQuestion(tirerQuestion(newTone, question));
+  };
+
+  const relancerQuestion = () => {
+    setQuestion(tirerQuestion(tone, question));
+    setQuestionPersonnalisee(false);
   };
 
   // Sauvegarde du brouillon à chaque modification du formulaire.
+  //
+  // Le tableau de dépendances est indispensable : sans lui, l'effet s'exécutait
+  // à chaque rendu du composant, donc à chaque frappe et à chaque survol.
   useEffect(() => {
     localStorage.setItem(
       DRAFT_STORAGE_KEY,
       JSON.stringify({ config: buildConfigDraft(), creatorEmail, linkDuration, allowMultiple })
     );
-  });
+    // `buildConfigDraft` lit l'ensemble de l'état du formulaire ; la liste
+    // ci-dessous en reprend chaque source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    recipientName,
+    senderName,
+    relation,
+    tone,
+    question,
+    subtitle,
+    emoji,
+    noButtonBehavior,
+    maxRefusals,
+    teases,
+    selectedDates,
+    selectedMenuOptions,
+    includeSurprise,
+    includeVenue,
+    themeKey,
+    enableAnimation,
+    motionIntensity,
+    finalMessage,
+    creatorEmail,
+    linkDuration,
+    allowMultiple,
+  ]);
 
   const createMutation = trpc.invitations.create.useMutation({
     onSuccess: (data) => {
@@ -570,13 +631,34 @@ export default function Editor() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700">Texte de la question (80 car. max)</label>
-                  <Input 
-                    value={question} 
-                    onChange={(e) => setQuestion(e.target.value)} 
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="question">
+                      Texte de la question (80 car. max)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={relancerQuestion}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800 min-h-11 px-1">
+                      <Shuffle className="w-3.5 h-3.5" strokeWidth={2} />
+                      Une autre
+                    </button>
+                  </div>
+                  <Input
+                    id="question"
+                    value={question}
+                    onChange={e => {
+                      setQuestion(e.target.value);
+                      // Dès la première frappe, le texte appartient au créateur :
+                      // changer de ton ne doit plus le lui reprendre.
+                      setQuestionPersonnalisee(true);
+                    }}
                     maxLength={80}
                     className="rounded-xl"
                   />
+                  <p className="text-[11px] text-stone-500">
+                    {TONE_PRESETS[tone].questions.length} formulations pour ce ton — « Une autre »
+                    en propose une nouvelle.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
