@@ -10,6 +10,8 @@ import {
   DEFAULT_SLOT_DURATION_MIN,
   invitationConfigSchema,
   LINK_DURATIONS,
+  DEFAULT_LINK_DURATION,
+  libelleDuree,
   MAX_DATE_SLOTS,
   MAX_MENU_LABEL,
   MAX_MENU_OPTIONS,
@@ -198,7 +200,7 @@ export default function Editor() {
 
   // Delivery
   const [creatorEmail, setCreatorEmail] = useState("");
-  const [linkDuration, setLinkDuration] = useState(30);
+  const [linkDuration, setLinkDuration] = useState<number>(DEFAULT_LINK_DURATION);
   const [allowMultiple, setAllowMultiple] = useState(false);
 
   // Result state after creation
@@ -389,7 +391,7 @@ export default function Editor() {
     createMutation.mutate({
       creatorEmail: creatorEmail.trim(),
       allowMultiple,
-      expiresDays: linkDuration,
+      expiresHours: linkDuration,
       config: parsed.data,
     });
   };
@@ -1068,9 +1070,15 @@ export default function Editor() {
                     onChange={(e) => setLinkDuration(Number(e.target.value))}
                     className="w-full bg-white border border-stone-300 rounded-xl px-3 h-11 md:h-10 text-base md:text-sm font-medium text-stone-800"
                   >
-                    <option value={7}>7 jours</option>
-                    <option value={30}>30 jours (recommandé)</option>
-                    <option value={90}>90 jours</option>
+                    {/* Dérivé de la constante partagée : les paliers étaient
+                        écrits en dur ici, et l'éditeur proposait encore
+                        7 / 30 / 90 quand le serveur ne les acceptait plus. */}
+                    {LINK_DURATIONS.map(heures => (
+                      <option key={heures} value={heures}>
+                        {libelleDuree(heures)}
+                        {heures === DEFAULT_LINK_DURATION ? " (recommandé)" : ""}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-[11px] text-stone-500">
                     Passé ce délai, l'invitation et sa réponse sont définitivement supprimées.

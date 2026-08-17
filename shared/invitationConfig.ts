@@ -41,8 +41,22 @@ export const MAX_MENU_OPTIONS = 12;
 export const MAX_MENU_LABEL = 60;
 export const MAX_TEASES = 12;
 
-/** Durées de vie proposées par l'éditeur, en jours. */
-export const LINK_DURATIONS = [7, 30, 90] as const;
+/**
+ * Durées de vie proposées par l'éditeur, en **heures**.
+ *
+ * Une invitation à dîner se répond dans la journée : garder l'adresse du
+ * créateur et les prénoms des deux personnes trois mois durant, comme le
+ * faisait le palier de 90 jours, ne servait personne.
+ */
+export const LINK_DURATIONS = [1, 2, 5, 24] as const;
+
+/** Durée retenue par défaut, en heures. */
+export const DEFAULT_LINK_DURATION = 24;
+
+/** « 1 heure », « 24 heures » — l'accord se perdait à chaque affichage. */
+export function libelleDuree(heures: number): string {
+  return `${heures} ${heures > 1 ? "heures" : "heure"}`;
+}
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 
