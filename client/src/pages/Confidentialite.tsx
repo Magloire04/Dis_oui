@@ -77,9 +77,9 @@ export default function Confidentialite() {
           <h2 className="text-xl font-bold text-stone-900">Durée de conservation</h2>
           <p className="text-sm">
             À la création, vous choisissez une durée de validité de {LINK_DURATIONS.join(", ")}{" "}
-            jours. À son échéance, l'invitation <strong>et la réponse associée</strong> sont
+            heures. À son échéance, l'invitation <strong>et la réponse associée</strong> sont
             supprimées automatiquement de la base, sans intervention de votre part. Une tâche
-            s'exécute toutes les heures à cet effet.
+            s'exécute toutes les quinze minutes à cet effet.
           </p>
           <p className="text-sm">
             Les empreintes d'adresses IP utilisées pour la limitation de débit sont supprimées au

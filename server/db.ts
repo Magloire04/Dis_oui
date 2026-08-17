@@ -1,14 +1,37 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
+
+/**
+ * Instruction jouée sur chaque connexion neuve du pool.
+ *
+ * Drizzle sérialise les `Date` en chiffres UTC. MySQL les interprétait dans
+ * son propre fuseau — UTC+1 à Porto-Novo — et stockait donc une heure de
+ * moins que demandé. La relecture appliquait le décalage inverse, si bien que
+ * les allers-retours en JavaScript paraissaient justes : c'est ce qui a rendu
+ * le défaut invisible. Mais tout calcul fait côté SQL était faux d'une heure,
+ * dont la ventilation des durées de la console et les fenêtres « 24 h » et
+ * « 7 jours » de l'activité.
+ *
+ * Sans conséquence tant que les durées se comptaient en jours. Sur un lien
+ * d'une heure, c'est la totalité de la durée.
+ */
+const FUSEAU_UTC = "SET time_zone = '+00:00'";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const pool = mysql.createPool({ uri: process.env.DATABASE_URL });
+      // Une requête émise ici est mise en file avant toute autre sur cette
+      // connexion : mysql2 sérialise les commandes par connexion.
+      pool.on("connection", connection => {
+        connection.query(FUSEAU_UTC);
+      });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

@@ -21,6 +21,7 @@ import {
   invitationAnswerSchema,
   invitationConfigSchema,
   LINK_DURATIONS,
+  DEFAULT_LINK_DURATION,
   userAuthoredText,
   type InvitationConfig,
 } from "@shared/invitationConfig";
@@ -53,12 +54,12 @@ export const invitationsRouter = router({
         creatorEmail: z.email().max(320),
         creatorPhone: creatorPhoneSchema,
         config: invitationConfigSchema,
-        expiresDays: z
+        expiresHours: z
           .number()
           .refine((n): n is (typeof LINK_DURATIONS)[number] => (LINK_DURATIONS as readonly number[]).includes(n), {
-            message: `La durée de validité doit valoir ${LINK_DURATIONS.join(", ")} jours.`,
+            message: `La durée de validité doit valoir ${LINK_DURATIONS.join(", ")} heures.`,
           })
-          .default(30),
+          .default(DEFAULT_LINK_DURATION),
         allowMultiple: z.boolean().default(false),
       })
     )
@@ -91,7 +92,7 @@ export const invitationsRouter = router({
         creatorPhone: input.creatorPhone ?? null,
         creatorToken: nanoid(CREATOR_TOKEN_LENGTH),
         config: input.config,
-        expiresAt: new Date(Date.now() + input.expiresDays * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + input.expiresHours * 60 * 60 * 1000),
         allowMultiple: input.allowMultiple,
         ipHash,
       });

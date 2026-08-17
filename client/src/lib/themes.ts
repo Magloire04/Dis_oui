@@ -1,19 +1,18 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Bean,
+  Beef,
   Citrus,
   CookingPot,
-  Dessert,
-  EggFried,
+  Croissant,
+  Drumstick,
   Fish,
   Flower,
   Gem,
+  Grape,
   MoonStar,
-  Salad,
-  Sandwich,
   ScrollText,
-  Soup,
   TreePine,
-  Wheat,
   Wine,
   Zap,
 } from "lucide-react";
@@ -227,20 +226,60 @@ export type MenuOption = { id: string; Icon: LucideIcon; label: string };
  * n'est là que pour la lecture rapide.
  */
 export const MENU_OPTIONS_PRESETS: MenuOption[] = [
-  { id: "sushi", Icon: Fish, label: "Bar à sushis & makis fondants" },
-  { id: "italien", Icon: Wheat, label: "Trattoria italienne secrète" },
-  { id: "burger", Icon: Sandwich, label: "Gourmet burgers & frites truffées" },
-  { id: "bistrot", Icon: Wine, label: "Bistrot français & planches" },
-  { id: "asiatique", Icon: Soup, label: "Ramen fumants & nouilles sautées" },
-  { id: "marocain", Icon: CookingPot, label: "Couscous royal & pâtisseries" },
-  { id: "libanais", Icon: Salad, label: "Mezzés à partager & falafels" },
-  { id: "brunch", Icon: EggFried, label: "Brunch XXL sucré-salé" },
-  { id: "dessert", Icon: Dessert, label: "Bar à desserts & douceurs" },
+  // Bénin — le service est édité depuis Porto-Novo et s'adresse d'abord à un
+  // public local ; le catalogue d'origine était exclusivement international.
+  { id: "amiwo", Icon: Drumstick, label: "Amiwo & poulet braisé" },
+  { id: "telibo", Icon: CookingPot, label: "Télibo & sauce arachide" },
+  { id: "ablo", Icon: Fish, label: "Ablo & poisson frit" },
+  { id: "atassi", Icon: Bean, label: "Atassi & sauce tomate" },
+
+  // France
+  { id: "bistrot", Icon: Wine, label: "Bistrot & planches" },
+  { id: "brasserie", Icon: Beef, label: "Steak-frites de brasserie" },
+  { id: "creperie", Icon: Croissant, label: "Crêperie bretonne" },
+  { id: "fromages", Icon: Grape, label: "Bar à fromages & vins" },
 ];
 
-export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> = {
+/**
+ * Formulations proposées pour chaque ton.
+ *
+ * Vingt-cinq par ton plutôt qu'une seule : deux créateurs qui choisissaient
+ * le même ton obtenaient mot pour mot la même phrase, et revenir sur
+ * l'éditeur retrouvait celle de la veille. L'effet de personnalisation
+ * s'effondrait.
+ *
+ * Chaque formulation tient sous 80 caractères, la limite du schéma partagé —
+ * une phrase plus longue serait proposée puis refusée à la validation.
+ */
+export const TONE_PRESETS: Record<Tone, { questions: string[]; teases: string[] }> = {
   doux: {
-    question: "Tu veux passer un moment doux avec moi ?",
+    questions: [
+      "Tu veux passer un moment doux avec moi ?",
+      "On se réserve une soirée rien qu'à nous ?",
+      "Ça te dirait, un moment tranquille tous les deux ?",
+      "Tu me laisserais t'emmener quelque part ?",
+      "On prend le temps de se voir, cette semaine ?",
+      "Tu accepterais un rendez-vous tout simple ?",
+      "Et si on se posait quelque part, juste nous deux ?",
+      "Tu aurais une soirée à me prêter ?",
+      "On se voit bientôt, pour de vrai ?",
+      "Ça te tente, un moment doux loin du bruit ?",
+      "Tu me dirais oui pour une soirée ensemble ?",
+      "On s'accorde un moment rien que pour nous ?",
+      "Tu voudrais qu'on se retrouve autour d'un verre ?",
+      "Je peux t'inviter quelque part de calme ?",
+      "On se garde une soirée, toi et moi ?",
+      "Tu serais partante pour un moment tranquille ?",
+      "Et si on se voyait, sans rien prévoir de compliqué ?",
+      "Tu me ferais le plaisir d'une soirée ensemble ?",
+      "On trouve un créneau rien que pour nous ?",
+      "Ça te ferait plaisir qu'on se voie bientôt ?",
+      "Tu aurais envie d'un moment tous les deux ?",
+      "On se retrouve quelque part, cette semaine ?",
+      "Je t'emmène quelque part, si tu veux bien ?",
+      "Tu accepterais de passer un moment avec moi ?",
+      "Et si on se réservait une belle soirée ?",
+    ],
     teases: [
       "Oh, un petit clic un peu trop rapide ?",
       "Tu hésites encore ? Prends ton temps...",
@@ -251,7 +290,33 @@ export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> 
     ],
   },
   drôle: {
-    question: "Tu veux sortir avec moi (ou tu préfères finir seule avec ton chat) ?",
+    questions: [
+      "Tu veux sortir avec moi, ou finir la soirée avec ton chat ?",
+      "Un rendez-vous avec moi : meilleure idée de ta semaine ?",
+      "Je prends ton silence pour un oui. On se voit quand ?",
+      "Alerte : quelqu'un veut t'inviter. Tu acceptes le risque ?",
+      "Sortir avec moi, ou refaire ton fil pour la douzième fois ?",
+      "J'ai un créneau libre et zéro fierté. Tu dis oui ?",
+      "Tu préfères mes blagues en vrai ou par écrit ?",
+      "On teste si je suis aussi drôle en personne ?",
+      "Ce message a coûté trois heures de courage. Tu dis oui ?",
+      "Un rendez-vous, sans piège. Enfin, presque sans piège.",
+      "Mon agenda est vide et c'est un peu gênant. On se voit ?",
+      "Tu veux voir si je mange proprement ? Rendez-vous ?",
+      "J'ai répété cette phrase douze fois. Ça se voit ?",
+      "Sortir avec moi : programme court, effets garantis.",
+      "Deux options : oui, ou oui plus tard. Tu choisis ?",
+      "Je promets de ne pas parler de moi. Enfin, j'essaierai.",
+      "Il paraît que je suis mieux en vrai. Tu vérifies ?",
+      "Ce serait bête de rater ça. On se voit quand ?",
+      "Un rendez-vous. Sans engagement. Sans PowerPoint.",
+      "Je t'invite. Tu apportes juste ta bonne humeur.",
+      "Le bouton Non est en panne, désolé. On se voit ?",
+      "J'ai déjà choisi le restaurant. Il manque juste toi.",
+      "Ma seule qualité : je choisis bien les restaurants.",
+      "Tu viens ? Je promets zéro anecdote sur mon travail.",
+      "Sortie proposée, motivation maximale, dignité minimale.",
+    ],
     teases: [
       "Erreur 404 : refus non autorisé.",
       "Tu as essayé de cliquer sur Non ? C'est mignon.",
@@ -262,7 +327,33 @@ export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> 
     ],
   },
   audacieux: {
-    question: "Prête pour le meilleur rendez-vous de ta vie ?",
+    questions: [
+      "Prête pour le meilleur rendez-vous de ta vie ?",
+      "On arrête de tourner autour du pot ? Un verre, bientôt.",
+      "Je t'invite. Tu as le droit de dire oui tout de suite.",
+      "Assez discuté : on se voit quand ?",
+      "Je sais déjà que ce sera bien. Tu me suis ?",
+      "Un rendez-vous avec moi, ça se refuse difficilement.",
+      "Je propose, tu acceptes. C'est plus simple comme ça.",
+      "On se voit, et on verra bien où ça nous mène.",
+      "J'ai décidé qu'on sortait ensemble. Ton avis m'intéresse.",
+      "Le meilleur moment de ta semaine, c'est moi. On se voit ?",
+      "Une soirée avec moi, ça te tente vraiment ?",
+      "Je te propose mieux que ta soirée prévue. On y va ?",
+      "Tu as mieux à faire ? J'en doute. Rendez-vous ?",
+      "Un verre, un vrai. Et on voit ce qui se passe.",
+      "Je ne demande pas la lune, juste une soirée.",
+      "Tu vas dire oui. La seule question, c'est quand.",
+      "Ce rendez-vous, on le prend maintenant ou ce week-end ?",
+      "Je te promets une soirée dont tu te souviendras.",
+      "Allez, un peu d'audace : on se voit cette semaine.",
+      "Je viens chercher ton oui. Tu me le donnes ?",
+      "Rendez-vous. Pas de détour, pas de peut-être.",
+      "Une soirée, deux personnes, aucune raison de refuser.",
+      "J'ai de l'ambition pour cette soirée. Et toi ?",
+      "On se voit, et je te fais changer d'avis sur tout.",
+      "Le seul risque, c'est de passer une excellente soirée.",
+    ],
     teases: [
       "Fuir ne sert à rien.",
       "Tu joues avec le feu...",
@@ -273,7 +364,33 @@ export const TONE_PRESETS: Record<Tone, { question: string; teases: string[] }> 
     ],
   },
   romantique: {
-    question: "Veux-tu m'accorder un rendez-vous inoubliable ?",
+    questions: [
+      "Veux-tu m'accorder un rendez-vous inoubliable ?",
+      "M'accorderais-tu une soirée, rien qu'une ?",
+      "Me ferais-tu l'honneur de dîner avec moi ?",
+      "Accepterais-tu de passer une soirée à mes côtés ?",
+      "Puis-je t'inviter à un moment hors du temps ?",
+      "Me laisserais-tu te faire passer une belle soirée ?",
+      "Une soirée avec toi vaudrait tous les détours.",
+      "Veux-tu être la plus belle raison de ma semaine ?",
+      "Puis-je espérer une soirée en ta compagnie ?",
+      "M'offrirais-tu quelques heures de ta présence ?",
+      "Je ne demande qu'une soirée. Me l'accorderais-tu ?",
+      "Voudrais-tu écrire un beau souvenir avec moi ?",
+      "Accepterais-tu de me retrouver quelque part ?",
+      "Ta présence me manque. Puis-je t'inviter ?",
+      "Une soirée à deux, loin de tout. Tu veux bien ?",
+      "Me ferais-tu la joie d'un rendez-vous ?",
+      "Puis-je t'emmener quelque part, rien que nous ?",
+      "Veux-tu m'accorder la plus belle de tes soirées ?",
+      "J'aimerais te voir. Vraiment. Tu accepterais ?",
+      "Un dîner avec toi, ce serait déjà beaucoup.",
+      "Voudrais-tu partager une soirée avec moi ?",
+      "Je t'attends quelque part. Viendras-tu ?",
+      "Accorde-moi une soirée, je m'occupe du reste.",
+      "Puis-je faire de cette semaine la plus belle ?",
+      "Ta compagnie, un soir : c'est tout ce que je demande.",
+    ],
     teases: [
       "Mon cœur bat un peu plus vite à chaque tentative...",
       "Tu ne peux pas refuser à une telle étoile.",

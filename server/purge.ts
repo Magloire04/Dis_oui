@@ -10,12 +10,19 @@ import { deleteOldEvents, logEvent } from "./operationLog";
  *
  * Une invitation contient l'e-mail du créateur, les prénoms des deux personnes
  * et un message libre ; une réponse contient les choix du destinataire. Passée
- * la date d'expiration choisie à la création (7, 30 ou 90 jours), il n'y a plus
- * aucune raison de les conserver.
+ * la date d'expiration choisie à la création (1, 2, 5 ou 24 heures), il n'y a
+ * plus aucune raison de les conserver.
  */
 
-/** Intervalle entre deux passages. Une heure suffit pour une purge quotidienne. */
-const PURGE_INTERVAL_MS = 60 * 60 * 1000;
+/**
+ * Intervalle entre deux passages.
+ *
+ * Une heure convenait à des durées en jours. Depuis que le palier le plus
+ * court vaut une heure, un passage horaire laissait une donnée survivre
+ * jusqu'à une heure de plus — le double de la durée promise, alors que
+ * l'accès, lui, est refusé à la seconde près.
+ */
+const PURGE_INTERVAL_MS = 15 * 60 * 1000;
 
 export type PurgeReport = {
   invitationsSupprimees: number;

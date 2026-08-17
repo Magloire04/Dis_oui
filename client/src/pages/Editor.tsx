@@ -10,7 +10,11 @@ import {
   DEFAULT_SLOT_DURATION_MIN,
   invitationConfigSchema,
   LINK_DURATIONS,
+  DEFAULT_LINK_DURATION,
+  libelleDuree,
   MAX_DATE_SLOTS,
+  MAX_MENU_LABEL,
+  MAX_MENU_OPTIONS,
   type DateSlot,
   type MotionIntensity,
   type NoButtonBehavior,
@@ -40,17 +44,32 @@ import {
   RotateCcw,
   Send,
   Shrink,
+  Shuffle,
   Smile,
   Sparkle,
   Sparkles,
   Users,
   Utensils,
+  UtensilsCrossed,
   Wand2,
+  X,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "dis_oui_draft";
+
+/**
+ * Tire une formulation au hasard parmi celles du ton, en évitant celle qui est
+ * déjà affichée : sans cette précaution, un tirage sur vingt-cinq redonnerait
+ * la même phrase et le bouton passerait pour cassé.
+ */
+function tirerQuestion(ton: Tone, exclure?: string): string {
+  const toutes = TONE_PRESETS[ton].questions;
+  const candidates = toutes.filter(q => q !== exclure);
+  const parmi = candidates.length > 0 ? candidates : toutes;
+  return parmi[Math.floor(Math.random() * parmi.length)];
+}
 
 // --- Créneaux ---------------------------------------------------------------
 
@@ -155,7 +174,10 @@ export default function Editor() {
   const [relation, setRelation] = useState<Relation>("crush");
   const [tone, setTone] = useState<Tone>("doux");
 
-  const [question, setQuestion] = useState("Tu veux sortir avec moi ?");
+  const [question, setQuestion] = useState(() => tirerQuestion("doux"));
+  // Vrai dès que le créateur réécrit la question : changer de ton ne doit
+  // alors plus la remplacer.
+  const [questionPersonnalisee, setQuestionPersonnalisee] = useState(false);
   const [subtitle, setSubtitle] = useState("J'ai une surprise pour toi...");
   const [emoji, setEmoji] = useState("💌");
   const [noButtonBehavior, setNoButtonBehavior] = useState<NoButtonBehavior>("fuyant");
@@ -166,7 +188,8 @@ export default function Editor() {
   const [selectedDates, setSelectedDates] = useState<DateSlot[]>(() => defaultSlots());
 
   // Menu & Options
-  const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["sushi", "italien", "bistrot"]);
+  const [selectedMenuOptions, setSelectedMenuOptions] = useState<string[]>(["amiwo", "ablo", "bistrot"]);
+  const [nouveauPlat, setNouveauPlat] = useState("");
   const [includeSurprise, setIncludeSurprise] = useState(true);
   const [includeVenue, setIncludeVenue] = useState(true);
 
@@ -179,13 +202,34 @@ export default function Editor() {
   // Delivery
   const [creatorEmail, setCreatorEmail] = useState("");
   const [creatorPhone, setCreatorPhone] = useState("");
-  const [linkDuration, setLinkDuration] = useState(30);
+  const [linkDuration, setLinkDuration] = useState<number>(DEFAULT_LINK_DURATION);
   const [allowMultiple, setAllowMultiple] = useState(false);
 
   // Result state after creation
   const [createdResult, setCreatedResult] = useState<{ slug: string; creatorToken: string; trackingUrl: string; recipientUrl: string } | null>(null);
 
   const currentTheme = THEMES[themeKey];
+
+  // Un plat retenu qui ne correspond à aucun identifiant du catalogue est un
+  // libellé saisi par le créateur : il s'affiche à part, avec sa croix.
+  const platsPersonnalises = selectedMenuOptions.filter(
+    m => !MENU_OPTIONS_PRESETS.some(opt => opt.id === m)
+  );
+
+  const ajouterPlat = () => {
+    const plat = nouveauPlat.trim();
+    if (!plat) return;
+    if (selectedMenuOptions.includes(plat)) {
+      toast.error("Ce plat est déjà dans la liste.");
+      return;
+    }
+    if (selectedMenuOptions.length >= MAX_MENU_OPTIONS) {
+      toast.error(`Pas plus de ${MAX_MENU_OPTIONS} propositions.`);
+      return;
+    }
+    setSelectedMenuOptions([...selectedMenuOptions, plat]);
+    setNouveauPlat("");
+  };
 
   // Rassemble l'état du formulaire dans la forme attendue par l'API.
   // Une seule source de vérité pour la sauvegarde du brouillon et l'envoi.
@@ -238,6 +282,7 @@ export default function Editor() {
         setRelation(c.relation);
         setTone(c.tone);
         setQuestion(c.question);
+        setQuestionPersonnalisee(true);
         setSubtitle(c.subtitle);
         setEmoji(c.emoji);
         setNoButtonBehavior(c.noButtonBehavior);
@@ -264,20 +309,64 @@ export default function Editor() {
     }
   }, []);
 
-  // Update teases when tone changes
+  /**
+   * Change de ton et propose une nouvelle formulation.
+   *
+   * Le tirage évite la formulation affichée : recliquer sur le même ton donnait
+   * une chance sur vingt-cinq de ne rien changer, ce qui se lit comme un bouton
+   * cassé.
+   *
+   * Une question réécrite par le créateur n'est jamais écrasée — c'est son
+   * texte, changer de ton ne doit pas le lui reprendre.
+   */
   const handleToneChange = (newTone: Tone) => {
     setTone(newTone);
-    setQuestion(TONE_PRESETS[newTone].question);
     setTeases(TONE_PRESETS[newTone].teases);
+
+    if (questionPersonnalisee) return;
+    setQuestion(tirerQuestion(newTone, question));
+  };
+
+  const relancerQuestion = () => {
+    setQuestion(tirerQuestion(tone, question));
+    setQuestionPersonnalisee(false);
   };
 
   // Sauvegarde du brouillon à chaque modification du formulaire.
+  //
+  // Le tableau de dépendances est indispensable : sans lui, l'effet s'exécutait
+  // à chaque rendu du composant, donc à chaque frappe et à chaque survol.
   useEffect(() => {
     localStorage.setItem(
       DRAFT_STORAGE_KEY,
       JSON.stringify({ config: buildConfigDraft(), creatorEmail, creatorPhone, linkDuration, allowMultiple })
     );
-  });
+    // `buildConfigDraft` lit l'ensemble de l'état du formulaire ; la liste
+    // ci-dessous en reprend chaque source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    recipientName,
+    senderName,
+    relation,
+    tone,
+    question,
+    subtitle,
+    emoji,
+    noButtonBehavior,
+    maxRefusals,
+    teases,
+    selectedDates,
+    selectedMenuOptions,
+    includeSurprise,
+    includeVenue,
+    themeKey,
+    enableAnimation,
+    motionIntensity,
+    finalMessage,
+    creatorEmail,
+    linkDuration,
+    allowMultiple,
+  ]);
 
   const createMutation = trpc.invitations.create.useMutation({
     onSuccess: (data) => {
@@ -312,7 +401,7 @@ export default function Editor() {
       creatorEmail: creatorEmail.trim(),
       allowMultiple,
       creatorPhone: creatorPhone.trim() || undefined,
-      expiresDays: linkDuration,
+      expiresHours: linkDuration,
       config: parsed.data,
     });
   };
@@ -554,13 +643,34 @@ export default function Editor() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-stone-700">Texte de la question (80 car. max)</label>
-                  <Input 
-                    value={question} 
-                    onChange={(e) => setQuestion(e.target.value)} 
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="question">
+                      Texte de la question (80 car. max)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={relancerQuestion}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800 min-h-11 px-1">
+                      <Shuffle className="w-3.5 h-3.5" strokeWidth={2} />
+                      Une autre
+                    </button>
+                  </div>
+                  <Input
+                    id="question"
+                    value={question}
+                    onChange={e => {
+                      setQuestion(e.target.value);
+                      // Dès la première frappe, le texte appartient au créateur :
+                      // changer de ton ne doit plus le lui reprendre.
+                      setQuestionPersonnalisee(true);
+                    }}
                     maxLength={80}
                     className="rounded-xl"
                   />
+                  <p className="text-[11px] text-stone-500">
+                    {TONE_PRESETS[tone].questions.length} formulations pour ce ton — « Une autre »
+                    en propose une nouvelle.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -779,6 +889,64 @@ export default function Editor() {
                   })}
                 </div>
 
+                {/* Plats saisis librement.
+                    Une entrée de `selectedMenuOptions` est soit un identifiant du
+                    catalogue, soit un libellé rédigé : le funnel résout d'abord dans
+                    le catalogue et affiche la chaîne telle quelle à défaut. */}
+                {platsPersonnalises.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {platsPersonnalises.map(plat => (
+                      <div
+                        key={plat}
+                        className="p-4 min-h-14 rounded-2xl border border-brand-600 bg-brand-50/50 shadow-sm flex items-center gap-3">
+                        <UtensilsCrossed className="w-5 h-5 shrink-0 text-brand-700" strokeWidth={1.75} />
+                        <span className="flex-1 min-w-0 text-sm font-medium text-stone-800 truncate">
+                          {plat}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Retirer ${plat}`}
+                          onClick={() => setSelectedMenuOptions(selectedMenuOptions.filter(m => m !== plat))}
+                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedMenuOptions.length < MAX_MENU_OPTIONS && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-stone-700" htmlFor="plat-libre">
+                      Un plat qui n'est pas dans la liste ?
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="plat-libre"
+                        value={nouveauPlat}
+                        onChange={e => setNouveauPlat(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            ajouterPlat();
+                          }
+                        }}
+                        maxLength={MAX_MENU_LABEL}
+                        placeholder="ex : Wagasi grillé & piment vert"
+                        className="rounded-xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={ajouterPlat}
+                        disabled={!nouveauPlat.trim()}
+                        className="rounded-xl shrink-0 min-h-11">
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3 pt-2">
                   <label className="flex items-center gap-3 min-h-11 cursor-pointer">
                     <input 
@@ -941,9 +1109,15 @@ export default function Editor() {
                     onChange={(e) => setLinkDuration(Number(e.target.value))}
                     className="w-full bg-white border border-stone-300 rounded-xl px-3 h-11 md:h-10 text-base md:text-sm font-medium text-stone-800"
                   >
-                    <option value={7}>7 jours</option>
-                    <option value={30}>30 jours (recommandé)</option>
-                    <option value={90}>90 jours</option>
+                    {/* Dérivé de la constante partagée : les paliers étaient
+                        écrits en dur ici, et l'éditeur proposait encore
+                        7 / 30 / 90 quand le serveur ne les acceptait plus. */}
+                    {LINK_DURATIONS.map(heures => (
+                      <option key={heures} value={heures}>
+                        {libelleDuree(heures)}
+                        {heures === DEFAULT_LINK_DURATION ? " (recommandé)" : ""}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-[11px] text-stone-500">
                     Passé ce délai, l'invitation et sa réponse sont définitivement supprimées.

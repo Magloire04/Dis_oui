@@ -58,7 +58,7 @@ describe("userAuthoredText", () => {
     selectedDates: [
       { id: "s1", label: "Ce vendredi", startsAt: "2026-08-14T17:30:00.000Z", durationMin: 120 },
     ],
-    selectedMenuOptions: ["sushi"],
+    selectedMenuOptions: ["amiwo"],
     includeSurprise: true,
     includeVenue: true,
     themeKey: "sepia",
@@ -86,7 +86,7 @@ describe("userAuthoredText", () => {
     // La modération ne doit jamais analyser un identifiant de thème ou de
     // menu : c'est ce que faisait `JSON.stringify(config)`.
     expect(textes).not.toContain("sepia");
-    expect(textes).not.toContain("sushi");
+    expect(textes).not.toContain("amiwo");
     expect(textes).not.toContain("crush");
   });
 });
