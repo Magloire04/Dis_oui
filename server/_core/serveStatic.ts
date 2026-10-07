@@ -1,7 +1,9 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { applyCanonical } from "../canonical";
 import { applySocialMeta } from "../socialMeta";
+import { ENV } from "./env";
 
 /**
  * Service des fichiers compilés, en production.
@@ -11,11 +13,20 @@ import { applySocialMeta } from "../socialMeta";
  * production, donc à exiger leur installation sur le serveur — une centaine de
  * mégaoctets d'outillage de compilation pour du code jamais exécuté.
  */
-export function serveStatic(app: Express) {
+type ServeStaticOptions = {
+  /** Dossier des fichiers compilés. Par défaut, celui du build. */
+  distPath?: string;
+  /** Adresse publique du site. Par défaut, PUBLIC_BASE_URL. */
+  publicBaseUrl?: string;
+};
+
+export function serveStatic(app: Express, options: ServeStaticOptions = {}) {
   const distPath =
-    process.env.NODE_ENV === "development"
+    options.distPath ??
+    (process.env.NODE_ENV === "development"
       ? path.resolve(import.meta.dirname, "../..", "dist", "public")
-      : path.resolve(import.meta.dirname, "public");
+      : path.resolve(import.meta.dirname, "public"));
+  const publicBaseUrl = options.publicBaseUrl ?? ENV.publicBaseUrl;
 
   if (!fs.existsSync(distPath)) {
     console.error(
@@ -23,7 +34,9 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // `index: false` : l'accueil passe lui aussi par le repli ci-dessous, sans
+  // quoi il serait servi tel quel, sans son adresse canonique.
+  app.use(express.static(distPath, { index: false }));
 
   // Repli sur index.html : l'application est une SPA, toute route inconnue du
   // serveur est une route du client.
@@ -31,10 +44,12 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res, next) => {
     try {
       const html = await fs.promises.readFile(indexPath, "utf-8");
-      res
-        .status(200)
-        .set({ "Content-Type": "text/html" })
-        .end(applySocialMeta(html, req.originalUrl));
+      const page = applyCanonical(
+        applySocialMeta(html, req.originalUrl),
+        req.originalUrl,
+        publicBaseUrl
+      );
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (error) {
       next(error);
     }
