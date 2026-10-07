@@ -66,6 +66,40 @@ if (manquants.length > 0) {
   process.exit(1);
 }
 
+/**
+ * La configuration ne doit jamais être lue avant le chargement de `.env`.
+ *
+ * Le découpage de code peut placer `server/_core/env.ts` dans un morceau
+ * partagé, évalué avant le point d'entrée. S'il ne charge pas `.env` lui-même,
+ * chaque valeur prend sa valeur par défaut et la production tourne sans sel,
+ * sans transport d'e-mail et sans mot de passe d'administration. Aucun test ne
+ * le voit : seul le paquet construit est concerné.
+ *
+ * On suit les imports statiques depuis le point d'entrée : `dist/` peut garder
+ * des morceaux d'une construction précédente, qui ne sont plus chargés.
+ */
+const aVisiter = ["index.js"];
+const visites = new Set();
+while (aVisiter.length > 0) {
+  const fichier = aVisiter.pop();
+  if (visites.has(fichier)) continue;
+  visites.add(fichier);
+  const contenu = readFileSync(`dist/${fichier}`, "utf8");
+  for (const [, relatif] of contenu.matchAll(/\b(?:from|import)\s*"\.\/([^"]+)"/g)) {
+    aVisiter.push(relatif);
+  }
+  const lecture = contenu.indexOf("process.env.JWT_SECRET");
+  if (lecture === -1) continue;
+  const chargement = contenu.indexOf('import "dotenv/config"');
+  if (chargement === -1 || chargement > lecture) {
+    console.error(
+      `dist/${fichier} lit la configuration sans avoir chargé .env : ` +
+        "server/_core/env.ts doit importer dotenv/config en premier."
+    );
+    process.exit(1);
+  }
+}
+
 writeFileSync(
   "dist/package.json",
   JSON.stringify(
