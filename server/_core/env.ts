@@ -1,3 +1,9 @@
+// Le fichier .env doit être chargé avant la lecture ci-dessous, et l'import placé
+// en tête de index.ts ne le garantit pas : à la construction, ce module peut
+// partir dans un morceau partagé, évalué avant index.ts. Toutes les valeurs
+// prenaient alors leur valeur par défaut en production.
+import "dotenv/config";
+
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.JWT_SECRET ?? "",
