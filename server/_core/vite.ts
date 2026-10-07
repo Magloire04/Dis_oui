@@ -5,7 +5,9 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { applyCanonical } from "../canonical";
 import { applySocialMeta } from "../socialMeta";
+import { ENV } from "./env";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -48,7 +50,12 @@ export async function setupVite(app: Express, server: Server) {
       // Après transformIndexHtml, pour que les métadonnées injectées ne soient
       // pas réécrites par Vite.
       const withMeta = applySocialMeta(page, req.originalUrl);
-      res.status(200).set({ "Content-Type": "text/html" }).end(withMeta);
+      const withCanonical = applyCanonical(
+        withMeta,
+        req.originalUrl,
+        ENV.publicBaseUrl
+      );
+      res.status(200).set({ "Content-Type": "text/html" }).end(withCanonical);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);

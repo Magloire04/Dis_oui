@@ -140,6 +140,7 @@ configurer pour développer en local.**
 | `server/emailService.ts` | notification du créateur via Resend |
 | `server/purge.ts` | suppression périodique des données expirées |
 | `server/socialMeta.ts` | aperçus de partage neutres sur les liens privés |
+| `server/canonical.ts` | adresse canonique des pages publiques, d'après `PUBLIC_BASE_URL` |
 | `client/src/pages/Admin.tsx` | console d'exploitation, sur `/admin` |
 | `server/adminRouter.ts`, `server/adminDb.ts` | procédures et agrégats de la console |
 | `server/metrics.ts`, `server/operationLog.ts` | mesures en mémoire, journal d'exploitation |
