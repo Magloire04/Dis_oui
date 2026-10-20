@@ -1,0 +1,103 @@
+diff --git a/server/_core/index.ts b/server/_core/index.ts
+index d8322b9..a66ebe0 100644
+--- a/server/_core/index.ts
++++ b/server/_core/index.ts
+@@ -10,6 +10,7 @@ import { createContext } from "./context";
+ import { startPurgeSchedule } from "../purge";
+ import { registerCronRoutes } from "../cronRoutes";
+ import { serveStatic } from "./serveStatic";
++import { enTetesSecurite } from "../securityHeaders";
+ 
+ function isPortAvailable(port: number): Promise<boolean> {
+   return new Promise(resolve => {
+@@ -33,6 +34,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
+ async function startServer() {
+   const app = express();
+   const server = createServer(app);
++  // Express annonce sa technologie par défaut : l'information ne sert qu'à
++  // cibler une attaque.
++  app.disable("x-powered-by");
++  app.use(enTetesSecurite);
+   // Configure body parser with larger size limit for file uploads
+   app.use(express.json({ limit: "50mb" }));
+   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+diff --git a/server/securityHeaders.test.ts b/server/securityHeaders.test.ts
+new file mode 100644
+index 0000000..7b87a8c
+--- /dev/null
++++ b/server/securityHeaders.test.ts
+@@ -0,0 +1,32 @@
++import { describe, expect, it, vi } from "vitest";
++import type { Request, Response } from "express";
++import { EN_TETES_SECURITE, enTetesSecurite } from "./securityHeaders";
++
++describe("enTetesSecurite", () => {
++  it("pose chaque en-tête de sécurité puis passe la main", () => {
++    const setHeader = vi.fn();
++    const suite = vi.fn();
++
++    enTetesSecurite({} as Request, { setHeader } as unknown as Response, suite);
++
++    for (const [nom, valeur] of Object.entries(EN_TETES_SECURITE)) {
++      expect(setHeader).toHaveBeenCalledWith(nom, valeur);
++    }
++    expect(suite).toHaveBeenCalledTimes(1);
++  });
++
++  it("couvre HSTS, nosniff, cadrage et politique de référent", () => {
++    expect(Object.keys(EN_TETES_SECURITE)).toEqual([
++      "Strict-Transport-Security",
++      "X-Content-Type-Options",
++      "X-Frame-Options",
++      "Referrer-Policy",
++    ]);
++  });
++
++  it("n'engage pas les sous-domaines dans HSTS", () => {
++    expect(EN_TETES_SECURITE["Strict-Transport-Security"]).not.toMatch(
++      /includeSubDomains|preload/i
++    );
++  });
++});
+diff --git a/server/securityHeaders.ts b/server/securityHeaders.ts
+new file mode 100644
+index 0000000..c07f181
+--- /dev/null
++++ b/server/securityHeaders.ts
+@@ -0,0 +1,36 @@
++import type { NextFunction, Request, Response } from "express";
++
++/**
++ * En-têtes de sécurité posés sur chaque réponse du serveur.
++ *
++ * - HSTS : le navigateur n'ouvre plus le site qu'en HTTPS pendant un an. Sans
++ *   `includeSubDomains` ni `preload`, volontairement : ces options engageraient
++ *   tous les sous-domaines de bytechnum.com, y compris ceux qui ne sont pas
++ *   gérés par ce projet.
++ * - nosniff : le navigateur respecte le type de contenu annoncé.
++ * - SAMEORIGIN : seules les pages du site peuvent l'afficher dans un cadre,
++ *   ce qui écarte le détournement de clic depuis un site tiers.
++ * - Referrer-Policy : l'adresse complète d'une invitation ne fuit pas vers
++ *   les sites externes, seul le domaine d'origine est transmis.
++ *
++ * La politique de sécurité du contenu (CSP) n'en fait pas partie : elle
++ * demande d'être éprouvée en mode rapport avant d'être imposée, sous peine de
++ * casser l'interface.
++ */
++export const EN_TETES_SECURITE: Readonly<Record<string, string>> = {
++  "Strict-Transport-Security": "max-age=31536000",
++  "X-Content-Type-Options": "nosniff",
++  "X-Frame-Options": "SAMEORIGIN",
++  "Referrer-Policy": "strict-origin-when-cross-origin",
++};
++
++export function enTetesSecurite(
++  _requete: Request,
++  reponse: Response,
++  suite: NextFunction
++) {
++  for (const [nom, valeur] of Object.entries(EN_TETES_SECURITE)) {
++    reponse.setHeader(nom, valeur);
++  }
++  suite();
++}
